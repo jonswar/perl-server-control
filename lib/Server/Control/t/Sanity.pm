@@ -1,0 +1,11 @@
+package Server::Control::t::Sanity;
+use base qw(Server::Control::Test::Class);
+use strict;
+use warnings;
+use Test::Most;
+
+sub test_ok : Test(1) {
+    ok( 1, '1 is ok' );
+}
+
+1;

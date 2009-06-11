@@ -1,0 +1,29 @@
+8
+
+dir
+242
+svn+ssh://code30.net/home/swartz/repos/std/bin/cptools/skel/lib/MODULE_DIR/t
+svn+ssh://code30.net/home/swartz/repos
+
+
+
+2008-09-24T18:57:48.420026Z
+215
+swartz
+
+
+svn:special svn:externals svn:needs-lock
+
+Sanity.pm
+file
+
+
+
+
+2009-06-11T17:33:26.000000Z
+46eb7c416c7772fa0cb0b17776c37bcb
+2008-09-24T18:57:48.420026Z
+215
+swartz
+has-props
+
