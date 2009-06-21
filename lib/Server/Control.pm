@@ -7,6 +7,7 @@ use File::Basename;
 use IO::Socket;
 use IPC::System::Simple qw(run);
 use Proc::ProcessTable;
+use Server::Control::Util;
 use Time::HiRes qw(usleep);
 use strict;
 use warnings;
@@ -14,14 +15,17 @@ use warnings;
 has 'description'         => ( is => 'ro', lazy_build => 1 );
 has 'error_log'           => ( is => 'ro', lazy_build => 1 );
 has 'log_dir'             => ( is => 'ro', lazy_build => 1 );
+has 'outbuf'              => ( is => 'ro', isa        => 'Maybe[ScalarRef]' );
 has 'name'                => ( is => 'ro', lazy_build => 1 );
 has 'pid_file'            => ( is => 'ro', lazy_build => 1 );
 has 'port'                => ( is => 'ro', required   => 1 );
-has 'root_dir'            => ( is => 'ro', lazy_build => 1 );
+has 'root_dir'            => ( is => 'ro' );
 has 'use_sudo'            => ( is => 'ro', lazy_build => 1 );
 has 'verbose'             => ( is => 'ro' );
 has 'wait_for_start_secs' => ( is => 'ro', default    => 5 );
 has 'wait_for_stop_secs'  => ( is => 'ro', default    => 5 );
+
+__PACKAGE__->meta->make_immutable();
 
 #
 # ATTRIBUTE BUILDERS
@@ -34,27 +38,27 @@ sub _build_description {
 
 sub _build_error_log {
     my $self = shift;
-    return catdir( $self->log_dir, "error_log" );
+    return
+      defined( $self->log_dir ) ? catdir( $self->log_dir, "error_log" ) : undef;
 }
 
 sub _build_log_dir {
     my $self = shift;
-    return catdir( $self->root_dir, "logs" );
+    return
+      defined( $self->root_dir ) ? catdir( $self->root_dir, "logs" ) : undef;
 }
 
 sub _build_name {
     my $self = shift;
-    return basename( $self->root_dir );
+    return
+      defined( $self->root_dir ) ? basename( $self->root_dir ) : ref($self);
 }
 
 sub _build_pid_file {
     my $self = shift;
-    return catdir( $self->log_dir, "httpd.pid" );
-}
-
-sub _build_root_dir {
-    my $self = shift;
-    return realpath( dirname($0) );
+    return defined( $self->log_dir )
+      ? catdir( $self->log_dir, "httpd.pid" )
+      : die "no pid_file and cannot determine log_dir";
 }
 
 sub _build_use_sudo {
@@ -68,7 +72,13 @@ sub _build_use_sudo {
 
 sub msg {
     my ( $self, $fmt, @params ) = @_;
-    printf( "$fmt\n", @params );
+    my $msg = sprintf( "$fmt\n", @params );
+    if ( $self->outbuf ) {
+        ${ $self->outbuf } .= $msg;
+    }
+    else {
+        print $msg;
+    }
 }
 
 sub vmsg {
@@ -102,7 +112,8 @@ sub start {
 
     if ( $self->_is_port_active() ) {
         $self->msg(
-            "pid file does not exist, but something is listening to port %d (another server?)",
+            "pid file '%s' does not exist, but something is listening to port %d (another server?)",
+            $self->pid_file(),
             $self->port()
         );
         $self->msg( "cannot start %s", $self->description() );
@@ -111,14 +122,16 @@ sub start {
 
     my $error_size_start = $self->_start_error_log_watch();
 
-    unless ( $self->do_start() ) {
-        $self->msg( "%s could not be started", $self->description() );
+    eval { $self->do_start() };
+    if (my $err = $@) {
+        $self->msg( "%s could not be started: %s", $self->description(), $err );
         $self->_report_error_log_output($error_size_start);
         return;
     }
 
     $self->msg("waiting for server start");
     for ( my $i = 0 ; $i < $self->wait_for_start_secs() * 10 ; $i++ ) {
+        local $self->{verbose} = ( $self->{verbose} && $i > 0 && $i % 10 == 0 );
         last if $self->is_running();
         usleep(100000);
     }
@@ -161,7 +174,17 @@ sub stop {
     }
     for ( my $i = 0 ; $i < $self->wait_for_stop_secs() ; $i++ ) {
         usleep(100000);
-        last if !$self->is_running() && !$self->_is_port_active();
+        local $self->{verbose} = ( $self->{verbose} && $i > 0 && $i % 10 == 0 );
+        $proc = $self->is_running();
+        if ($proc) {
+            $self->vmsg("pid file still exists");
+        }
+        elsif ( $self->_is_port_active() ) {
+            $self->vmsg("port is still active");
+        }
+        else {
+            last;
+        }
     }
     if ( my $proc = $self->is_running() ) {
         $self->msg(
@@ -232,12 +255,9 @@ sub is_running {
 
         my $ptable = new Proc::ProcessTable();
         if ( my ($proc) = grep { $_->pid == $pid } @{ $ptable->table } ) {
-            if ( $self->_is_port_active() ) {
-                return $proc;
-            }
-            else {
-                return undef;
-            }
+            $self->vmsg( "pid file '%s' exists and has valid pid %d",
+                $pid_file, $pid );
+            return $proc;
         }
         else {
             $self->msg(
@@ -248,6 +268,7 @@ sub is_running {
         }
     }
     else {
+        $self->vmsg( "pid file '%s' does not exist", $pid_file );
         return undef;
     }
 }
@@ -263,7 +284,7 @@ sub _valid_commands {
 sub _start_error_log_watch {
     my ($self) = @_;
 
-    return -s $self->error_log() || 0;
+    return defined( $self->error_log ) ? ( -s $self->error_log() || 0 ) : 0;
 }
 
 sub _report_error_log_output {
@@ -282,9 +303,6 @@ sub _report_error_log_output {
                     $self->msg( "error log output:\n%s", $buf );
                 }
             }
-        }
-        else {
-            $self->msg( "cannot find error log '%s'", $error_log );
         }
     }
 }
@@ -378,7 +396,6 @@ Jonathan Swartz
 
 Copyright (C) 2007 Jonathan Swartz, all rights reserved.
 
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
+This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
 
 =cut

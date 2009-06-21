@@ -11,6 +11,7 @@ our @EXPORT = qw(
 );
 
 our @EXPORT_OK = qw(
+  dump_one_line
 );
 
 sub _dump_value_with_caller {
@@ -30,6 +31,13 @@ sub dp {
 
 sub dps {
     print STDERR longmess( _dump_value_with_caller(@_) );
+}
+
+sub dump_one_line {
+    my ($value) = @_;
+
+    return Data::Dumper->new( [$value] )->Indent(0)->Sortkeys(1)->Quotekeys(0)
+      ->Terse(1)->Dump();
 }
 
 1;

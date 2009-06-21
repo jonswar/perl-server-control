@@ -1,13 +1,23 @@
 package Server::Control::Simple;
+use Server::Control::Util;
+use File::Slurp;
 use Moose;
 use strict;
 use warnings;
 
-has 'server' => ( is => 'ro', isa => 'HTTP::Server::Simple', required => 1 );
-
 extends 'Server::Control';
 
+has 'server' => ( is => 'ro', isa => 'HTTP::Server::Simple', required => 1 );
+has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
+has '+wait_for_start_secs' => ( default => 1 );
+has '+wait_for_stop_secs' => ( default => 1 );
+
 __PACKAGE__->meta->make_immutable();
+
+sub _build_port {
+    my $self = shift;
+    return $self->server->port;
+}
 
 # Ideally, HTTP::Server::Simple would create the pid on startup and remove
 # it on shutdown - otherwise our process detection isn't accurate

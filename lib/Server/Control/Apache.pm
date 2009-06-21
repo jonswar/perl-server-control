@@ -3,11 +3,11 @@ use Moose;
 use strict;
 use warnings;
 
+extends 'Server::Control';
+
 has 'httpd_binary' => ( is => 'ro', default    => '/usr/bin/httpd' );
 has 'conf_file'    => ( is => 'ro', lazy_build => 1 );
 has 'conf_dir'     => ( is => 'ro', lazy_build => 1 );
-
-extends 'Server::Control';
 
 __PACKAGE__->meta->make_immutable();
 
@@ -44,13 +44,7 @@ sub send_httpd_command {
         $cmd = "sudo $cmd";
     }
     $self->vmsg("running '$cmd'");
-    eval { run($cmd) };
-    if ( my $error = $@ ) {
-        chomp($error);
-        $self->msg($error);
-        return 0;
-    }
-    return 1;
+    run($cmd);
 }
 
 1;

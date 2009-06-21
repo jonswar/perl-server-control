@@ -1,7 +1,7 @@
 #!perl
 use strict;
 use warnings;
-use CHI::Test::InternalOnly;
+use Server::Control::Test::InternalOnly;
 
 use Test::More;
 
