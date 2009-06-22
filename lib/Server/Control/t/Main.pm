@@ -1,4 +1,4 @@
-package Server::Control::t::Simple;
+package Server::Control::t::Main;
 use base qw(Server::Control::Test::Class);
 use File::Slurp;
 use File::Spec::Functions qw(tmpdir);
