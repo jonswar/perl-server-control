@@ -8,6 +8,7 @@ use base qw(Exporter);
 our @EXPORT = qw(
   dp
   dps
+  trim
 );
 
 our @EXPORT_OK = qw(
@@ -38,6 +39,13 @@ sub dump_one_line {
 
     return Data::Dumper->new( [$value] )->Indent(0)->Sortkeys(1)->Quotekeys(0)
       ->Terse(1)->Dump();
+}
+
+sub trim {
+    my ( $str ) = @_;
+
+    for ($str) { s/^\s+//; s/\s+$// };
+    return $str;
 }
 
 1;
