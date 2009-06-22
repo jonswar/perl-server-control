@@ -1,5 +1,6 @@
 package Server::Control::t::Simple;
 use base qw(Server::Control::Test::Class);
+use File::Slurp;
 use File::Spec::Functions qw(tmpdir);
 use File::Temp qw(tempfile tempdir);
 use Guard;
@@ -35,8 +36,8 @@ sub test_setup : Tests(setup) {
 
 sub test_simple : Tests(12) {
     my $self = shift;
-
     my $ctl = $self->{ctl};
+
     ok( !$ctl->is_running(), "not running" );
     $ctl->stop();
     $ctl->output_contains_only( qr/server '.*' not running/,
@@ -58,11 +59,11 @@ sub test_simple : Tests(12) {
 
 sub test_port_busy : Tests(2) {
     my $self = shift;
+    my $ctl = $self->{ctl};
     
     my $other_server = HTTP::Server::Simple->new($port);
     my $other_pid = $other_server->background;
     
-    my $ctl = $self->{ctl};
     ok( !$ctl->is_running(), "not running" );
     $ctl->start();
     $ctl->output_contains(qr/pid file '.*' does not exist, but something is listening to port $port/);
@@ -75,6 +76,19 @@ sub test_no_pid_file_specified : Test(1) {
         Server::Control::Simple->new( server => $self->{server} )->pid_file;
     }
     qr/no pid_file/;
+}
+
+sub test_corrupt_pid_file : Test(3) {
+    my $self = shift;
+    my $ctl = $self->{ctl};
+    my $pid_file = $self->{pid_file};
+    
+    write_file($pid_file, "blah");
+    $ctl->start();
+    $ctl->output_contains(qr/pid file '.*' does not contain a valid process id/);
+    $ctl->output_contains(qr/deleting bogus pid file/);
+    ok( $ctl->is_running(), "is running" );
+    $ctl->stop();
 }
 
 # Probably a better way to do this on cpan...

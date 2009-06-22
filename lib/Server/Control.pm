@@ -7,7 +7,7 @@ use File::Basename;
 use IO::Socket;
 use IPC::System::Simple qw(run);
 use Proc::ProcessTable;
-use Server::Control::Util;
+use Server::Control::Util qw(dp trim);
 use Time::HiRes qw(usleep);
 use strict;
 use warnings;
@@ -244,9 +244,8 @@ sub is_running {
 
     my $pid_file = $self->pid_file();
     if ( -e $pid_file ) {
-        my ($pid) = read_file($pid_file);
-
-        unless ( $pid > 0 ) {
+        my $pid = $self->_read_pid_file($pid_file);
+        unless ( defined($pid) ) {
             $self->msg( "pid file '%s' does not contain a valid process id!",
                 $pid_file );
             $self->_handle_corrupt_pid_file();
@@ -348,6 +347,13 @@ sub _is_port_active {
         PeerAddr => "localhost",
         PeerPort => $self->port()
     ) ? 1 : 0;
+}
+
+sub _read_pid_file {
+    my ( $self, $pid_file ) = @_;
+
+    my $pid = trim(read_file($pid_file));
+    return $pid =~ /^\d+$/ ? $pid : undef;
 }
 
 1;
