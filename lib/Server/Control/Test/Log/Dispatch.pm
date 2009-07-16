@@ -1,19 +1,27 @@
-package Server::Control::Test::Testable;
+package Server::Control::Test::Log::Dispatch;
 use Server::Control::Util qw(dump_one_line);
 use List::MoreUtils qw(first_index);
-use Moose::Role;
 use Test::Builder;
 use strict;
 use warnings;
+use base qw(Log::Dispatch);
 
-has 'msgs' => (is => 'ro', default => sub { [] });
+sub new {
+    my ($class) = @_;
 
-sub msg {
-    my ( $self, $fmt, @params ) = @_;
+    my $self = $class->SUPER::new();
+    $self->add(
+        Log::Dispatch::Array->new(
+            name      => 'test',
+            min_level => 'debug',
+            @_
+        )
+    );
+}
 
-    my $msg = sprintf( "$fmt\n", @params );
-    push(@{$self->msgs}, $msg);
-    Test::Most::explain("** $msg");
+sub msgs {
+    my ($self) = @_;
+    return $self->{outputs}{test}{array};
 }
 
 sub output_contains {
@@ -22,13 +30,13 @@ sub output_contains {
 
     my $found = first_index { /$regex/ } @{ $self->msgs };
     if ( $found != -1 ) {
-        splice( @{ $self->{msgs} }, $found, 1 );
+        splice( @{ $self->msgs }, $found, 1 );
         $tb->ok( 1, "found message matching $regex" );
     }
     else {
         $tb->ok( 0,
             "could not find message matching $regex; log contains: "
-              . dump_one_line( $self->{msgs} ) );
+              . dump_one_line( $self->msgs ) );
     }
 }
 
@@ -42,19 +50,19 @@ sub output_contains_only {
 sub output_clear {
     my ($self) = @_;
 
-    $self->{msgs} = [];
+    $self->{outputs}{test}{array} = [];
 }
 
 sub output_is_empty {
     my ($self) = @_;
     my $tb = Test::Builder->new();
 
-    if ( !@{ $self->{msgs} } ) {
+    if ( !@{ $self->msgs } ) {
         $tb->ok( 1, "log is empty" );
     }
     else {
         $tb->ok( 0,
-            "log is not empty; contains " . dump_one_line( $self->{msgs} ) );
+            "log is not empty; contains " . dump_one_line( $self->msgs ) );
     }
 }
 
