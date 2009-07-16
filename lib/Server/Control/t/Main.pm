@@ -8,7 +8,7 @@ use HTTP::Server::Simple;
 use Proc::ProcessTable;
 use Server::Control::Simple;
 use Server::Control::Util;
-use Server::Control::Test::Testable;
+use Server::Control::Test::Log::Dispatch;
 use Test::Most;
 use strict;
 use warnings;
@@ -30,43 +30,48 @@ sub test_setup : Tests(setup) {
         server   => $self->{server},
         pid_file => $self->{pid_file},
     );
-    Server::Control::Test::Testable->meta->apply( $self->{ctl} );
+    $self->{log} = Server::Control::Test::Log::Dispatch->new();
+    Log::Any->set_adapter( 'Log::Dispatch', $self->{log} );
     $self->{stop_guard} = guard( \&kill_my_children );
 }
 
 sub test_simple : Tests(12) {
     my $self = shift;
-    my $ctl = $self->{ctl};
+    my $ctl  = $self->{ctl};
+    my $log  = $self->{log};
 
     ok( !$ctl->is_running(), "not running" );
     $ctl->stop();
-    $ctl->output_contains_only( qr/server '.*' not running/,
+    $log->output_contains_only( qr/server '.*' not running/,
         "stop: is not running" );
-    $ctl->output_is_empty();
+    $log->output_is_empty();
 
     $ctl->start();
-    $ctl->output_contains(qr/waiting for server start/);
-    $ctl->output_contains_only(qr/is now running.* - listening on port $port/);
+    $log->output_contains(qr/waiting for server start/);
+    $log->output_contains_only(qr/is now running.* - listening on port $port/);
     ok( $ctl->is_running(), "is running" );
     $ctl->start();
-    $ctl->output_contains_only( qr/server '.*' already running/,
+    $log->output_contains_only( qr/server '.*' already running/,
         "start: already running" );
 
     $ctl->stop();
-    $ctl->output_contains(qr/stopped/);
+    $log->output_contains(qr/stopped/);
     ok( !$ctl->is_running(), "not running" );
 }
 
 sub test_port_busy : Tests(2) {
     my $self = shift;
-    my $ctl = $self->{ctl};
-    
+    my $ctl  = $self->{ctl};
+    my $log  = $self->{log};
+
     my $other_server = HTTP::Server::Simple->new($port);
-    my $other_pid = $other_server->background;
-    
+    my $other_pid    = $other_server->background;
+
     ok( !$ctl->is_running(), "not running" );
     $ctl->start();
-    $ctl->output_contains(qr/pid file '.*' does not exist, but something is listening to port $port/);
+    $log->output_contains(
+        qr/pid file '.*' does not exist, but something is listening to port $port/
+    );
 }
 
 sub test_no_pid_file_specified : Test(1) {
@@ -79,14 +84,16 @@ sub test_no_pid_file_specified : Test(1) {
 }
 
 sub test_corrupt_pid_file : Test(3) {
-    my $self = shift;
-    my $ctl = $self->{ctl};
+    my $self     = shift;
+    my $ctl      = $self->{ctl};
+    my $log      = $self->{log};
     my $pid_file = $self->{pid_file};
-    
-    write_file($pid_file, "blah");
+
+    write_file( $pid_file, "blah" );
     $ctl->start();
-    $ctl->output_contains(qr/pid file '.*' does not contain a valid process id/);
-    $ctl->output_contains(qr/deleting bogus pid file/);
+    $log->output_contains(
+        qr/pid file '.*' does not contain a valid process id/);
+    $log->output_contains(qr/deleting bogus pid file/);
     ok( $ctl->is_running(), "is running" );
     $ctl->stop();
 }
@@ -100,18 +107,18 @@ sub kill_my_children {
         map { $_->pid } grep { $_->ppid == $$ } @{ $t->table };
     };
     my $send_signal = sub {
-        my ($signal, $pids) = @_;
+        my ( $signal, $pids ) = @_;
         explain( "sending signal $signal to " . join( ", ", @$pids ) . "\n" );
         kill $signal, @$pids;
     };
 
     if ( my @child_pids = $get_child_pids->() ) {
-        $send_signal->(15, \@child_pids);
+        $send_signal->( 15, \@child_pids );
         for ( my $i = 0 ; $i < 3 && $get_child_pids->() ; $i++ ) {
             sleep(1);
         }
         if ( @child_pids = $get_child_pids->() ) {
-            $send_signal->(9, \@child_pids);
+            $send_signal->( 9, \@child_pids );
         }
     }
 }
