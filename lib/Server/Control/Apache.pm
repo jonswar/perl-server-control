@@ -1,4 +1,5 @@
 package Server::Control::Apache;
+use Log::Any qw($log);
 use Moose;
 use strict;
 use warnings;
@@ -19,6 +20,13 @@ sub _build_conf_dir {
 sub _build_conf_file {
     my $self = shift;
     return catdir( $self->conf_dir, 'httpd.conf' );
+}
+
+sub _build_pid_file {
+    my $self = shift;
+    return defined( $self->log_dir )
+      ? catdir( $self->log_dir, "httpd.pid" )
+      : $self->SUPER::_build_pid_file();
 }
 
 sub do_start {
@@ -43,7 +51,7 @@ sub send_httpd_command {
     if ( $self->use_sudo() ) {
         $cmd = "sudo $cmd";
     }
-    $self->vmsg("running '$cmd'");
+    $log->debug("running '$cmd'") if $log->is_debug;
     run($cmd);
 }
 
