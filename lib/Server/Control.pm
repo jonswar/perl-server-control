@@ -32,7 +32,7 @@ __PACKAGE__->meta->make_immutable();
 
 sub _build_description {
     my $self = shift;
-    return "server '" . ref($self);
+    return "server '" . ref($self) . "'";
 }
 
 sub _build_error_log {
