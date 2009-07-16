@@ -1,13 +1,14 @@
 package Server::Control::Test::Log::Dispatch;
-use Server::Control::Util qw(dump_one_line);
 use List::MoreUtils qw(first_index);
+use Log::Dispatch::Array;
+use Server::Control::Util qw(dump_one_line);
 use Test::Builder;
 use strict;
 use warnings;
 use base qw(Log::Dispatch);
 
 sub new {
-    my ($class) = @_;
+    my $class = shift;
 
     my $self = $class->SUPER::new();
     $self->add(
@@ -17,6 +18,7 @@ sub new {
             @_
         )
     );
+    return $self;
 }
 
 sub msgs {
@@ -28,7 +30,7 @@ sub output_contains {
     my ( $self, $regex ) = @_;
     my $tb = Test::Builder->new();
 
-    my $found = first_index { /$regex/ } @{ $self->msgs };
+    my $found = first_index { /$regex/ } map { $_->{message} } @{ $self->msgs };
     if ( $found != -1 ) {
         splice( @{ $self->msgs }, $found, 1 );
         $tb->ok( 1, "found message matching $regex" );
