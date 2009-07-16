@@ -1,5 +1,6 @@
 package Server::Control::t::Main;
 use base qw(Server::Control::Test::Class);
+use Capture::Tiny qw(capture);
 use File::Slurp;
 use File::Spec::Functions qw(tmpdir);
 use File::Temp qw(tempfile tempdir);
@@ -30,8 +31,9 @@ sub test_setup : Tests(setup) {
         server   => $self->{server},
         pid_file => $self->{pid_file},
     );
-    $self->{log} = Server::Control::Test::Log::Dispatch->new();
-    Log::Any->set_adapter( 'Log::Dispatch', $self->{log} );
+    $self->{log} =
+      Server::Control::Test::Log::Dispatch->new( min_level => 'info' );
+    Log::Any->set_adapter( 'Log::Dispatch', dispatcher => $self->{log} );
     $self->{stop_guard} = guard( \&kill_my_children );
 }
 
@@ -64,8 +66,12 @@ sub test_port_busy : Tests(2) {
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
 
-    my $other_server = HTTP::Server::Simple->new($port);
-    my $other_pid    = $other_server->background;
+    my $other_server;
+    capture {    # Discard stdout banner
+        $other_server = HTTP::Server::Simple->new($port);
+        $other_server->background;
+    };
+    sleep(1);
 
     ok( !$ctl->is_running(), "not running" );
     $ctl->start();
