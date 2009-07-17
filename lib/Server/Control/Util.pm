@@ -42,9 +42,9 @@ sub dump_one_line {
 }
 
 sub trim {
-    my ( $str ) = @_;
+    my ($str) = @_;
 
-    for ($str) { s/^\s+//; s/\s+$// };
+    for ($str) { s/^\s+//; s/\s+$// }
     return $str;
 }
 

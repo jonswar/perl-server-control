@@ -62,7 +62,7 @@ sub _build_use_sudo {
 #
 
 sub handle_cmdline {
-    my ($self, %params) = @_;
+    my ( $self, %params ) = @_;
 
     my $cmd = $params{cmd} || $ARGV[0];
     my $verbose = $params{verbose};
@@ -361,9 +361,9 @@ Server::Control -- Flexible apachectl style control for servers
 
 =head1 DESCRIPTION
 
-Server::Control allows you to control servers in the spirit of apachectl.
-For purposes of this module, a server is defined as a background process
-which has a pid file and listens to a port.
+Server::Control allows you to control servers in the spirit of apachectl. For
+purposes of this module, a server is defined as a background process which has
+a pid file and listens to a port.
 
 Server::Control is designed to be subclassed for each type of server. For
 example, Server::Control::Apache is a subclass that deals with Apache httpd.
@@ -377,13 +377,13 @@ You can pass the following common options to the constructor:
 
 =item description
 
-Description of the server to be used in output and logs. A generic default
-will be chosen if none is provided.
+Description of the server to be used in output and logs. A generic default will
+be chosen if none is provided.
 
 =item error_log
 
-Location of error log. Defaults to I<log_dir>/error_log if I<log_dir> is defined,
-otherwise undef.
+Location of error log. Defaults to I<log_dir>/error_log if I<log_dir> is
+defined, otherwise undef.
 
 =item log_dir
 
@@ -396,8 +396,8 @@ Path to pid file.
 
 =item port
 
-At least one port that server will listen to, so that Server::Control can
-check it on start/stop. Required.
+At least one port that server will listen to, so that Server::Control can check
+it on start/stop. Required.
 
 =item root_dir
 
@@ -406,16 +406,18 @@ defaults of other options like I<log_dir>.
 
 =item use_sudo
 
-Whether to use 'sudo' when attempting to start and stop server. Defaults to true
-if I<port> < 1024, false otherwise.
+Whether to use 'sudo' when attempting to start and stop server. Defaults to
+true if I<port> < 1024, false otherwise.
 
 =item wait_for_start_secs
 
-Number of seconds to wait for server start before reporting error. Defaults to 5.
+Number of seconds to wait for server start before reporting error. Defaults to
+5.
 
 =item wait_for_stop_secs
 
-Number of seconds to wait for server stop before reporting error. Defaults to 5.
+Number of seconds to wait for server stop before reporting error. Defaults to
+5.
 
 =back
 
@@ -429,7 +431,7 @@ Start the server. Calls L</do_start> internally.
 
 =item stop
 
-Stop the server. Calls L</do_stop> 
+Stop the server. Calls L</do_stop>
 
 =item restart
 
@@ -441,17 +443,25 @@ Log the server's status.
 
 =item handle_cmdline ($cmd, $verbose)
 
-Helper method to process a command-line command for a script like apachectl. If I<$cmd> is one of start, stop, restart, or ping, it will be called on the object; otherwise, an appropriate usage error will be thrown. This method will also cause messages to be logged to STDOUT, as is expected for a command-line script. I<$verbose> is a boolean indicating whether the log level will be set to 'debug' or 'info'.
+Helper method to process a command-line command for a script like apachectl. If
+I<$cmd> is one of start, stop, restart, or ping, it will be called on the
+object; otherwise, an appropriate usage error will be thrown. This method will
+also cause messages to be logged to STDOUT, as is expected for a command-line
+script. I<$verbose> is a boolean indicating whether the log level will be set
+to 'debug' or 'info'.
 
 =back
 
 =head1 LOGGING
 
-C<Server::Control> uses L<Log::Any|Log::Any> for logging, so you have control over where logs will be sent, if anywhere. The exception is L</handle_cmdline>, which will tell C<Log::Any> to send logs to STDOUT.
+C<Server::Control> uses L<Log::Any|Log::Any> for logging, so you have control
+over where logs will be sent, if anywhere. The exception is L</handle_cmdline>,
+which will tell C<Log::Any> to send logs to STDOUT.
 
 =head1 IMPLEMENTING SUBCLASSES
 
-C<Server::Control> uses L<Moose|Moose>, so ideally subclasses will as well. See L<Server::Control::Apache|Server::Control::Apache> for an example.
+C<Server::Control> uses L<Moose|Moose>, so ideally subclasses will as well. See
+L<Server::Control::Apache|Server::Control::Apache> for an example.
 
 =head2 Subclass methods
 
@@ -459,11 +469,13 @@ C<Server::Control> uses L<Moose|Moose>, so ideally subclasses will as well. See 
 
 =item do_start
 
-This actually starts the server - it is called by L</start> and must be defined by the subclass.
+This actually starts the server - it is called by L</start> and must be defined
+by the subclass.
 
 =item do_stop
 
-This actually stops the server - it is called by L</stop> and may be defined by the subclass. By default, it will send a SIGTERM to the process.
+This actually stops the server - it is called by L</stop> and may be defined by
+the subclass. By default, it will send a SIGTERM to the process.
 
 =back
 
@@ -479,6 +491,7 @@ Jonathan Swartz
 
 Copyright (C) 2007 Jonathan Swartz, all rights reserved.
 
-This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
