@@ -477,7 +477,7 @@ by the subclass.
 This actually stops the server - it is called by L</stop> and may be defined by
 the subclass. By default, it will send a SIGTERM to the process.
 
-=back
+
 
 =head1
 
