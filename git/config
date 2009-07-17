@@ -5,7 +5,7 @@
 	logallrefupdates = true
 	ignorecase = true
 [remote "origin"]
-	url = git@github.com:jonswar/serverctl.git
+	url = git@github.com:jonswar/perl-server-control.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "master"]
 	merge = master
