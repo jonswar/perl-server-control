@@ -9,7 +9,7 @@ use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Proc::ProcessTable;
-use Server::Control::Util qw(dp trim);
+use Server::Control::Util qw(trim);
 use Time::HiRes qw(usleep);
 use strict;
 use warnings;

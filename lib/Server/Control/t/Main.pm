@@ -8,7 +8,6 @@ use Guard;
 use HTTP::Server::Simple;
 use Proc::ProcessTable;
 use Server::Control::Simple;
-use Server::Control::Util;
 use Server::Control::Test::Log::Dispatch;
 use Test::Most;
 use strict;

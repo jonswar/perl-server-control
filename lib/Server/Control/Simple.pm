@@ -1,5 +1,4 @@
 package Server::Control::Simple;
-use Server::Control::Util;
 use File::Slurp;
 use Moose;
 use strict;
