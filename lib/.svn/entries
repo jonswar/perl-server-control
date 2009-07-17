@@ -1,31 +1,0 @@
-8
-
-dir
-242
-svn+ssh://code30.net/home/swartz/repos/std/bin/cptools/skel/lib
-svn+ssh://code30.net/home/swartz/repos
-
-
-
-2008-09-24T18:57:48.420026Z
-215
-swartz
-
-
-svn:special svn:externals svn:needs-lock
-
-MODULE_DIR
-dir
-
-MODULE_FILE
-file
-
-
-
-
-2008-09-24T16:58:45.000000Z
-d43891f0756bf3268d3659826326592b
-2008-09-24T18:57:48.420026Z
-215
-swartz
-
