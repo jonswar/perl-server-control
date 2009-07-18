@@ -1,4 +1,4 @@
-package Server::Control;
+::package Server::Control;
 use Moose;
 use Cwd qw(realpath);
 use File::Slurp;
@@ -75,7 +75,7 @@ sub handle_cmdline {
             callbacks => sub { my %params = @_; "$params{message}\n" }
         )
     );
-    Log::Any->set_adapter( 'Log::Dispatch', dispatcher => $dispatcher );
+    Log::Any->set_adapter( 'Dispatch', dispatcher => $dispatcher );
     my @valid_commands = $self->_valid_commands;
 
     if ( defined($cmd) && grep { $_ eq $cmd } @valid_commands ) {
@@ -361,13 +361,16 @@ Server::Control -- Flexible apachectl style control for servers
 
 =head1 DESCRIPTION
 
-Server::Control allows you to control servers in the spirit of apachectl. For
-purposes of this module, a server is defined as a background process which has
-a pid file and listens to a port.
+C<Server::Control> allows you to control servers in the spirit of apachectl,
+where a server is any background process which listens to a port and has a pid
+file.
 
-Server::Control is designed to be subclassed for each type of server. For
-example, Server::Control::Apache is a subclass that deals with Apache httpd.
-Subclasses are available in separate distributions.
+C<Server::Control> is designed to be subclassed for different types of server.
+For example, L<Server::Control::Simple|Server::Control::Simple> deals with
+L<HTTP::Server::Simple|HTTP::Server::Simple> servers, and
+L<Server::Control::Apache|Server::Control::Apache> deals with Apache httpd.
+Only L<Server::Control::Simple|Server::Control::Simple> comes with this
+distribution; other subclasses will go in their own distributions.
 
 =head1 CONSTRUCTOR
 
@@ -482,6 +485,8 @@ the subclass. By default, it will send a SIGTERM to the process.
 =head1
 
 =head1 SEE ALSO
+
+L<Server::Control::Apache|Server::Control::Apache>
 
 =head1 AUTHOR
 
