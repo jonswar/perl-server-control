@@ -10,9 +10,9 @@ perl_version '5.006';
 build_requires 'Test::Class' => 0;
 build_requires 'Test::Most'  => 0;
 
-requires 'List::MoreUtils'                  => '0.13';
-requires 'Log::Any::Adapter::Log::Dispatch' => '0.02';
-requires 'Moose'                            => '0.66';
+requires 'List::MoreUtils'             => '0.13';
+requires 'Log::Any::Adapter::Dispatch' => '0.03';
+requires 'Moose'                       => '0.66';
 
 license 'perl';
 

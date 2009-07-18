@@ -32,7 +32,7 @@ sub test_setup : Tests(setup) {
     );
     $self->{log} =
       Server::Control::Test::Log::Dispatch->new( min_level => 'info' );
-    Log::Any->set_adapter( 'Log::Dispatch', dispatcher => $self->{log} );
+    Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
     $self->{stop_guard} = guard( \&kill_my_children );
 }
 
