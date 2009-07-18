@@ -1,15 +1,13 @@
-::package Server::Control;
+package Server::Control;
 use Moose;
 use Cwd qw(realpath);
-use File::Slurp;
 use File::Spec::Functions qw(catdir catfile);
-use File::Basename;
 use IO::Socket;
 use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Proc::ProcessTable;
-use Server::Control::Util qw(trim);
+use Server::Control::Util qw(read_file trim);
 use Time::HiRes qw(usleep);
 use strict;
 use warnings;
