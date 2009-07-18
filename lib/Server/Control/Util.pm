@@ -5,14 +5,12 @@ use strict;
 use warnings;
 use base qw(Exporter);
 
-our @EXPORT = qw(
+our @EXPORT_OK = qw(
   dp
   dps
-  trim
-);
-
-our @EXPORT_OK = qw(
   dump_one_line
+  read_file
+  trim
 );
 
 sub _dump_value_with_caller {
@@ -46,6 +44,16 @@ sub trim {
 
     for ($str) { s/^\s+//; s/\s+$// }
     return $str;
+}
+
+sub read_file {
+    my ($file) = @_;
+
+    local $/ = undef;
+    open( my $fh, '<', $file )
+      or die "cannot open '$file': $!";
+    my $contents = <$fh>;
+    return $contents;
 }
 
 1;
