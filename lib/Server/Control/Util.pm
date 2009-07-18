@@ -9,7 +9,6 @@ our @EXPORT_OK = qw(
   dp
   dps
   dump_one_line
-  read_file
   trim
 );
 
@@ -44,16 +43,6 @@ sub trim {
 
     for ($str) { s/^\s+//; s/\s+$// }
     return $str;
-}
-
-sub read_file {
-    my ($file) = @_;
-
-    local $/ = undef;
-    open( my $fh, '<', $file )
-      or die "cannot open '$file': $!";
-    my $contents = <$fh>;
-    return $contents;
 }
 
 1;
