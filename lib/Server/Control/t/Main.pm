@@ -2,8 +2,7 @@ package Server::Control::t::Main;
 use base qw(Server::Control::Test::Class);
 use Capture::Tiny qw(capture);
 use File::Slurp;
-use File::Spec::Functions qw(tmpdir);
-use File::Temp qw(tempfile tempdir);
+use File::Temp qw(tempdir);
 use Guard;
 use HTTP::Server::Simple;
 use Proc::ProcessTable;
@@ -36,27 +35,26 @@ sub test_setup : Tests(setup) {
     $self->{stop_guard} = guard( \&kill_my_children );
 }
 
-sub test_simple : Tests(12) {
+sub test_simple : Tests(11) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
 
     ok( !$ctl->is_running(), "not running" );
     $ctl->stop();
-    $log->output_contains_only( qr/server '.*' not running/,
+    $log->contains_only_ok( qr/server '.*' not running/,
         "stop: is not running" );
-    $log->output_is_empty();
 
     $ctl->start();
-    $log->output_contains(qr/waiting for server start/);
-    $log->output_contains_only(qr/is now running.* - listening on port $port/);
+    $log->contains_ok(qr/waiting for server start/);
+    $log->contains_only_ok(qr/is now running.* - listening on port $port/);
     ok( $ctl->is_running(), "is running" );
     $ctl->start();
-    $log->output_contains_only( qr/server '.*' already running/,
+    $log->contains_only_ok( qr/server '.*' already running/,
         "start: already running" );
 
     $ctl->stop();
-    $log->output_contains(qr/stopped/);
+    $log->contains_ok(qr/stopped/);
     ok( !$ctl->is_running(), "not running" );
 }
 
@@ -74,7 +72,7 @@ sub test_port_busy : Tests(2) {
 
     ok( !$ctl->is_running(), "not running" );
     $ctl->start();
-    $log->output_contains(
+    $log->contains_ok(
         qr/pid file '.*' does not exist, but something is listening to port $port/
     );
 }
@@ -96,9 +94,8 @@ sub test_corrupt_pid_file : Test(3) {
 
     write_file( $pid_file, "blah" );
     $ctl->start();
-    $log->output_contains(
-        qr/pid file '.*' does not contain a valid process id/);
-    $log->output_contains(qr/deleting bogus pid file/);
+    $log->contains_ok(qr/pid file '.*' does not contain a valid process id/);
+    $log->contains_ok(qr/deleting bogus pid file/);
     ok( $ctl->is_running(), "is running" );
     $ctl->stop();
 }
