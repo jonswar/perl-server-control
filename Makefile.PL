@@ -7,12 +7,24 @@ author 'Jonathan Swartz <swartz@pobox.com>';
 
 perl_version '5.006';
 
-build_requires 'Test::Class' => 0;
-build_requires 'Test::Most'  => 0;
+build_requires 'Test::Class'          => 0;
+build_requires 'Test::Most'           => 0;
+build_requires 'Capture::Tiny'        => 0;
+build_requires 'Getopt::Long'         => 0;
+build_requires 'Guard'                => 0.5;
+build_requires 'HTTP::Server::Simple' => 0.28;
+build_requires 'Log::Dispatch::Array' => 1.001;
 
+requires 'File::Slurp'                 => '9999.13';
+requires 'File::Spec'                  => 0;
+requires 'File::Temp'                  => 0;
+requires 'IO::Socket'                  => 0;
+requires 'IPC::System::Simple'         => '1.18';
 requires 'List::MoreUtils'             => '0.13';
 requires 'Log::Any::Adapter::Dispatch' => '0.03';
 requires 'Moose'                       => '0.66';
+requires 'Proc::ProcessTable'          => '0.42';
+requires 'Time::HiRes'                 => 0;
 
 license 'perl';
 
