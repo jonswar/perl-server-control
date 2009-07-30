@@ -385,7 +385,8 @@ be chosen if none is provided.
 =item error_log
 
 Location of error log. Defaults to I<log_dir>/error_log if I<log_dir> is
-defined, otherwise undef.
+defined, otherwise undef. When a server fails to start, Server::Control
+attempts to show any recent messages in the error log.
 
 =item log_dir
 
@@ -398,8 +399,8 @@ Path to pid file.
 
 =item port
 
-At least one port that server will listen to, so that Server::Control can check
-it on start/stop. Required.
+At least one port that server will listen to, so that C<Server::Control> can
+check it on start/stop. Required.
 
 =item root_dir
 
@@ -425,6 +426,8 @@ Number of seconds to wait for server stop before reporting error. Defaults to
 
 =head1 METHODS
 
+=head2 Action methods
+
 =over
 
 =item start
@@ -433,7 +436,7 @@ Start the server. Calls L</do_start> internally.
 
 =item stop
 
-Stop the server. Calls L</do_stop>
+Stop the server. Calls L</do_stop> internally.
 
 =item restart
 
@@ -451,6 +454,22 @@ object; otherwise, an appropriate usage error will be thrown. This method will
 also cause messages to be logged to STDOUT, as is expected for a command-line
 script. I<$verbose> is a boolean indicating whether the log level will be set
 to 'debug' or 'info'.
+
+=back
+
+=head2 Status methods
+
+=over
+
+=item is_running
+
+If the server is running, returns a
+L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object representing
+the server's main process. Otherwise returns undef.
+
+=item status_as_string
+
+Returns a string like "server is running (pid 123)" or "server is not running".
 
 =back
 
