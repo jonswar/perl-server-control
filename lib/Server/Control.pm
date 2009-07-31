@@ -368,8 +368,6 @@ C<Server::Control> is designed to be subclassed for different types of server.
 For example, L<Server::Control::Simple|Server::Control::Simple> deals with
 L<HTTP::Server::Simple|HTTP::Server::Simple> servers, and
 L<Server::Control::Apache|Server::Control::Apache> deals with Apache httpd.
-Only L<Server::Control::Simple|Server::Control::Simple> comes with this
-distribution; other subclasses will go in their own distributions.
 
 =head1 CONSTRUCTOR
 
