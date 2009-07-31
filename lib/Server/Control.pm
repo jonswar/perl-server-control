@@ -13,6 +13,8 @@ use Time::HiRes qw(usleep);
 use strict;
 use warnings;
 
+our $VERSION = '0.01';
+
 has 'description'         => ( is => 'ro', lazy_build => 1 );
 has 'error_log'           => ( is => 'ro', lazy_build => 1 );
 has 'log_dir'             => ( is => 'ro', lazy_build => 1 );
