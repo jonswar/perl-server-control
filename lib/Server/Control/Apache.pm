@@ -1,4 +1,5 @@
 package Server::Control::Apache;
+use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Moose;
 use strict;
@@ -26,7 +27,7 @@ sub _build_pid_file {
     my $self = shift;
     return defined( $self->log_dir )
       ? catdir( $self->log_dir, "httpd.pid" )
-      : $self->SUPER::_build_pid_file();
+      : die "no pid_file specified and cannot determine log_dir";
 }
 
 sub do_start {
