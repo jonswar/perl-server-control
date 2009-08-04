@@ -8,8 +8,6 @@ extends 'Server::Control';
 
 has 'server' => ( is => 'ro', isa => 'HTTP::Server::Simple', required => 1 );
 has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
-has '+wait_for_start_secs' => ( default => 1 );
-has '+wait_for_stop_secs'  => ( default => 1 );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -18,21 +16,14 @@ sub _build_port {
     return $self->server->port;
 }
 
-# Ideally, HTTP::Server::Simple would create the pid on startup and remove
-# it on shutdown - otherwise our process detection isn't accurate
-
-sub do_start {
-    my $self = shift;
-
-    my $pid = $self->server->background();
-    write_file( $self->pid_file, $pid );
+sub _build_pid_file {
+    die "must specify pid_file";
 }
 
-sub do_stop {
-    my ( $self, $proc ) = @_;
+sub do_start {
+      my $self = shift;
 
-    kill 15, $proc->pid;
-    unlink( $self->pid_file );
+      $self->server->background();
 }
 
 1;
@@ -50,8 +41,11 @@ servers
 
     use Server::Control::Simple;
 
-    my $server = HTTP::Server::Simple->new ( ... );
-    my $ctl = Server::Control::Simple->new(server => $server);
+    my $server = HTTP::Server::Simple->new(
+        net_server => 'PreForkSimple',
+        ...
+    );
+    my $ctl = Server::Control::Simple->new( server => $server );
     if ( !$ctl->is_running() ) {
         $ctl->start();
     }
