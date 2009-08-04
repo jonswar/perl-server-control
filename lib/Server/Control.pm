@@ -4,7 +4,6 @@ use Cwd qw(realpath);
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir catfile);
 use IO::Socket;
-use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Proc::ProcessTable;
@@ -49,8 +48,7 @@ sub _build_log_dir {
 }
 
 sub _build_pid_file {
-    my $self = shift;
-    die "no pid_file and cannot determine log_dir";
+    die "cannot determine pid_file";
 }
 
 sub _build_use_sudo {
@@ -279,7 +277,7 @@ sub _report_error_log_output {
                 open( $fh, $error_log );
                 seek( $fh, $error_size_start, 0 );
                 read( $fh, $buf, $error_size_end - $error_size_start );
-                $buf =~ s/^(.)/> $1/mg;
+                $buf =~ s/^(.*)/> $1/mg;
                 if ( $buf =~ /\S/ ) {
                     $log->infof( "error log output:\n%s", $buf );
                 }
@@ -319,7 +317,7 @@ sub _handle_corrupt_pid_file {
 
     my $pid_file = $self->pid_file();
     $log->infof( "deleting bogus pid file '%s'", $pid_file );
-    unlink $pid_file;
+    unlink $pid_file or die "cannot remove '$pid_file': $!";
 }
 
 sub _is_port_active {
@@ -493,10 +491,12 @@ L<Server::Control::Apache|Server::Control::Apache> for an example.
 This actually starts the server - it is called by L</start> and must be defined
 by the subclass.
 
-=item do_stop
+=item do_stop ($proc)
 
-This actually stops the server - it is called by L</stop> and may be defined by
-the subclass. By default, it will send a SIGTERM to the process.
+This actually stops the server - it is called by L</stop> and may be defined
+by the subclass. By default, it will send a SIGTERM to the process. I<$proc>
+is a L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object
+representing the current process, as returned by L</is_running>.
 
 =back
 
