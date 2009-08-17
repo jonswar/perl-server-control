@@ -493,10 +493,10 @@ by the subclass.
 
 =item do_stop ($proc)
 
-This actually stops the server - it is called by L</stop> and may be defined
-by the subclass. By default, it will send a SIGTERM to the process. I<$proc>
-is a L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object
-representing the current process, as returned by L</is_running>.
+This actually stops the server - it is called by L</stop> and may be defined by
+the subclass. By default, it will send a SIGTERM to the process. I<$proc> is a
+L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object representing
+the current process, as returned by L</is_running>.
 
 =back
 

@@ -21,9 +21,9 @@ sub _build_pid_file {
 }
 
 sub do_start {
-      my $self = shift;
+    my $self = shift;
 
-      $self->server->background();
+    $self->server->background();
 }
 
 1;
