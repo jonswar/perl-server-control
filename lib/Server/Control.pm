@@ -406,6 +406,10 @@ Tails the error log when server fails to start
 
 Detects and handles corrupt or out-of-date pid files
 
+=item *
+
+Uses sudo by default when using restricted (< 1024) port
+
 =back
 
 =head1 CONSTRUCTOR
@@ -576,7 +580,32 @@ the current process, as returned by L</is_running>.
 
 =back
 
-=head1 TODO
+=head1 RELATED MODULES
+
+=over
+
+=item *
+
+L<App::Control|App::Control> - Same basic idea for any application with a pid
+file. No features specific to a server listening on a port, and not easily
+subclassable, as all commands are handled in a single case statement.
+
+=item *
+
+L<MooseX::Control|MooseX::Control> - A Moose role for controlling applications
+with a pid file. Nice extendability. No features specific to a server listening
+on a port, and assumes server starts via a command-line (unlike pure-Perl
+servers, say). May end up using this role.
+
+=item *
+
+L<Nginx::Control|Nginx::Control>, L<Sphinx::Control|Sphinx::Control>,
+L<Lighttpd::Control|Lighttpd::Control> - Modules which use
+L<MooseX::Control|MooseX::Control>
+
+=back
+
+=head1 TO DO
 
 =over
 
@@ -585,11 +614,13 @@ the current process, as returned by L</is_running>.
 When a port is being listened to unexpectedly, attempt to report which process
 is listening (via lsof, fuser, etc.)
 
+=item *
+
+Possibly add pre- and post- start and stop augment hooks like
+L<MooseX::Control|MooseX::Control>, though not sure why inner/augment is better
+than before/after methods.
+
 =back
-
-=head1 SEE ALSO
-
-L<Server::Control::Apache|Server::Control::Apache>
 
 =head1 AUTHOR
 
