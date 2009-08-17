@@ -23,7 +23,7 @@ sub _build_pid_file {
 sub do_start {
     my $self = shift;
 
-    $self->server->background();
+    $self->server->run( pid_file => $self->pid_file, @_ );
 }
 
 1;
@@ -45,9 +45,11 @@ servers
         net_server => 'PreForkSimple',
         ...
     );
-    my $ctl = Server::Control::Simple->new( server => $server );
+    my $ctl = Server::Control::Simple->new( server => $server, pid_file => '/path/to/server.pid' );
     if ( !$ctl->is_running() ) {
-        $ctl->start();
+        $ctl->start(
+           # insert Net::Server arguments here
+        );
     }
 
 =head1 DESCRIPTION
@@ -57,18 +59,40 @@ for HTTP::Server::Simple servers.
 
 =head1 CONSTRUCTOR
 
-The constructor options are the same as in L<Server::Control|Server::Control>,
+The constructor options are as described in L<Server::Control|Server::Control>,
 except for:
 
 =over
 
 =item server
 
-Specifies the C<HTTP::Server::Simple> object. Required.
+Specifies the C<HTTP::Server::Simple> object. Required. When creating the
+server object you should specify a forking implementation for C<net_server>
+like C<Net::Server::Fork>, C<Net::Server::PreForkSimple>, or
+C<Net::Server::PreFork>. See synopsis for an example and
+L<Net::Server|Net::Server> for more details.
+
+=item pid_file
+
+This is required for the base class. It will be passed automatically to
+Net::Server.
 
 =item port
 
 This is no longer required since it can be extracted from the server object.
+
+=back
+
+=head1 METHODS
+
+The methods are as described in L<Server::Control|Server::Control>, except for:
+
+=over
+
+=item start
+
+Arguments to this method, normally ignored, are passed along to the C<run>
+method on the server object.
 
 =back
 
