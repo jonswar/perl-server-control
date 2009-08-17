@@ -13,7 +13,7 @@ build_requires 'Capture::Tiny'        => 0;
 build_requires 'Getopt::Long'         => 0;
 build_requires 'Guard'                => 0.5;
 build_requires 'HTTP::Server::Simple' => 0.28;
-build_requires 'Log::Dispatch::Array' => 1.001;
+build_requires 'Test::Log::Dispatch'  => 0;
 
 requires 'File::Slurp'                 => '9999.13';
 requires 'File::Spec'                  => 0;
