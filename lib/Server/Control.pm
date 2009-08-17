@@ -14,6 +14,7 @@ use warnings;
 
 our $VERSION = '0.01';
 
+has 'bind_addr'           => ( is => 'ro', default    => 'localhost' );
 has 'description'         => ( is => 'ro', lazy_build => 1 );
 has 'error_log'           => ( is => 'ro', lazy_build => 1 );
 has 'log_dir'             => ( is => 'ro', lazy_build => 1 );
@@ -21,10 +22,17 @@ has 'pid_file'            => ( is => 'ro', lazy_build => 1 );
 has 'port'                => ( is => 'ro', required   => 1 );
 has 'root_dir'            => ( is => 'ro' );
 has 'use_sudo'            => ( is => 'ro', lazy_build => 1 );
-has 'wait_for_start_secs' => ( is => 'ro', default    => 5 );
-has 'wait_for_stop_secs'  => ( is => 'ro', default    => 5 );
+has 'wait_for_start_secs' => ( is => 'ro', default    => 10 );
+has 'wait_for_stop_secs'  => ( is => 'ro', default    => 10 );
 
 __PACKAGE__->meta->make_immutable();
+
+use constant {
+    INACTIVE  => 0,
+    RUNNING   => 1,
+    LISTENING => 2,
+    ACTIVE    => 4,
+};
 
 #
 # ATTRIBUTE BUILDERS
@@ -90,12 +98,11 @@ sub start {
 
     return unless $self->_assert_not_running();
 
-    if ( $self->_is_port_active() ) {
-        $log->infof(
-            "pid file '%s' does not exist, but something is listening to port %d (another server?)",
-            $self->pid_file(), $self->port()
+    if ( $self->is_listening() ) {
+        $log->warnf(
+            "cannot start %s - pid file '%s' does not exist, but something is listening to port %d",
+            $self->description(), $self->pid_file(), $self->port(),
         );
-        $log->infof( "cannot start %s", $self->description() );
         return;
     }
 
@@ -103,25 +110,28 @@ sub start {
 
     eval { $self->do_start() };
     if ( my $err = $@ ) {
-        $log->infof( "%s could not be started: %s", $self->description(),
-            $err );
+        $log->errorf( "error while trying to start %s: %s",
+            $self->description(), $err );
         $self->_report_error_log_output($error_size_start);
         return;
     }
 
     $log->infof("waiting for server start");
-    for ( my $i = 0 ; $i < $self->wait_for_start_secs() * 10 ; $i++ ) {
-        last if $self->is_running();
+    my $wait_until = time() + $self->wait_for_start_secs();
+    while ( time < $wait_until ) {
+        last if $self->is_active();
         usleep(100000);
     }
 
-    if ( my $proc = $self->is_running() ) {
-        $log->infof( "%s is now running (pid %d) - listening on port %d",
-            $self->description, $proc->pid, $self->port );
+    if ( $self->is_active() ) {
+        $log->info( $self->status_as_string() );
     }
     else {
-        $log->infof( "%s still does not appear to be running after %d secs",
-            $self->description(), $self->wait_for_start_secs() );
+        $log->warnf(
+            "after %d secs, %s",
+            $self->wait_for_start_secs(),
+            $self->status_as_string()
+        );
         $self->_report_error_log_output($error_size_start);
     }
 }
@@ -129,12 +139,8 @@ sub start {
 sub stop {
     my ($self) = @_;
 
-    my $proc = $self->is_running();
-    unless ($proc) {
-        $log->infof( "%s not running", $self->description() );
-        return;
-    }
-    my $pid = $proc->pid;
+    my $proc;
+    return unless $proc = $self->_assert_running();
 
     my ( $uid, $eid ) = ( $<, $> );
     if ( ( $eid || $uid ) && $proc->uid != $uid && !$self->use_sudo() ) {
@@ -148,36 +154,29 @@ sub stop {
         );
     }
 
-    unless ( $self->do_stop($proc) ) {
-        $log->infof( "%s could not be stopped", $self->description() );
+    eval { $self->do_stop() };
+    if ( my $err = $@ ) {
+        $log->errorf( "error while trying to stop %s: %s",
+            $self->description(), $err );
+        return;
     }
-    for ( my $i = 0 ; $i < $self->wait_for_stop_secs() ; $i++ ) {
+
+    $log->infof("waiting for server stop");
+    my $wait_until = time() + $self->wait_for_stop_secs();
+    while ( time < $wait_until ) {
+        last if $self->is_inactive();
         usleep(100000);
-        $proc = $self->is_running();
-        if ($proc) {
-            $log->debug("pid file still exists");
-        }
-        elsif ( $self->_is_port_active() ) {
-            $log->debug("port is still active");
-        }
-        else {
-            last;
-        }
     }
-    if ( my $proc = $self->is_running() ) {
-        $log->infof(
-            "%s (pid %d) could not could not be stopped gracefully - try again or use 'kill'",
-            $self->description(), $pid
-        );
-    }
-    elsif ( $self->_is_port_active() ) {
-        $log->infof(
-            "%s stopped, but something (possibly process %d or a child) is still listening to port %d",
-            $self->description(), $pid, $self->port()
-        );
+
+    if ( $self->is_inactive() ) {
+        $log->info( $self->status_as_string() );
     }
     else {
-        $log->infof( "%s stopped", $self->description() );
+        $log->warnf(
+            "after %d secs, %s",
+            $self->wait_for_start_secs(),
+            $self->status_as_string()
+        );
     }
 }
 
@@ -200,22 +199,43 @@ sub ping {
     $log->infof( "%s", $self->status_as_string() );
 }
 
+sub do_start {
+    die "must be provided by subclass";
+}
+
 sub do_stop {
     my ( $self, $proc ) = @_;
 
     kill 15, $proc->pid;
 }
 
+sub status {
+    my ($self) = @_;
+
+    return ( $self->is_running() ? RUNNING   : 0 ) &
+      ( $self->is_listening()    ? LISTENING : 0 );
+}
+
 sub status_as_string {
     my ($self) = @_;
 
-    if ( my $proc = $self->is_running() ) {
-        return
-          sprintf( "%s is running (pid %d)", $self->description(), $proc->pid );
-    }
-    else {
-        return sprintf( "%s is not running", $self->description() );
-    }
+    my $proc = $self->is_running();
+    my $port = $self->port;
+    my $msg  = {
+        INACTIVE => "not running",
+        RUNNING  => sprintf(
+            "running (pid %d) but not listening to port %d",
+            $proc->pid, $port
+        ),
+        LISTENING => sprintf(
+            "not running, but something is listening to port %d", $port
+        ),
+        ACTIVE => sprintf(
+            "running (pid %d) and listening to port %d",
+            $proc->pid, $port
+        ),
+    }->{ $self->status() };
+    return join( " is ", $self->description(), $msg );
 }
 
 sub is_running {
@@ -289,8 +309,8 @@ sub _report_error_log_output {
 sub _assert_running {
     my ($self) = @_;
 
-    if ( $self->is_running() ) {
-        return 1;
+    if ( my $proc = $self->is_running() ) {
+        return $proc;
     }
     else {
         $log->infof( "%s not running", $self->description() );
@@ -320,11 +340,11 @@ sub _handle_corrupt_pid_file {
     unlink $pid_file or die "cannot remove '$pid_file': $!";
 }
 
-sub _is_port_active {
+sub is_listening {
     my ($self) = @_;
 
     return IO::Socket::INET->new(
-        PeerAddr => "localhost",
+        PeerAddr => $self->bind_addr(),
         PeerPort => $self->port()
     ) ? 1 : 0;
 }
@@ -369,11 +389,35 @@ For example, L<Server::Control::Simple|Server::Control::Simple> deals with
 L<HTTP::Server::Simple|HTTP::Server::Simple> servers, and
 L<Server::Control::Apache|Server::Control::Apache> deals with Apache httpd.
 
+=head1 FEATURES
+
+=over
+
+=item *
+
+Checks server status in multiple ways (looking for an active process,
+contacting the server's port)
+
+=item *
+
+Tails the error log when server fails to start
+
+=item *
+
+Detects and handles corrupt or out-of-date pid files
+
+=back
+
 =head1 CONSTRUCTOR
 
 You can pass the following common options to the constructor:
 
 =over
+
+=item bind_addr
+
+At least one address that the server binds to, so that C<Server::Control> can
+check it on start/stop. Defaults to C<localhost>. See also L</port>.
 
 =item description
 
@@ -384,7 +428,7 @@ be chosen if none is provided.
 
 Location of error log. Defaults to I<log_dir>/error_log if I<log_dir> is
 defined, otherwise undef. When a server fails to start, Server::Control
-attempts to show any recent messages in the error log.
+attempts to show recent messages in the error log.
 
 =item log_dir
 
@@ -398,7 +442,7 @@ Path to pid file.
 =item port
 
 At least one port that server will listen to, so that C<Server::Control> can
-check it on start/stop. Required.
+check it on start/stop. Required. See also L</bind_addr>.
 
 =item root_dir
 
@@ -413,12 +457,12 @@ true if I<port> < 1024, false otherwise.
 =item wait_for_start_secs
 
 Number of seconds to wait for server start before reporting error. Defaults to
-5.
+10.
 
 =item wait_for_stop_secs
 
 Number of seconds to wait for server stop before reporting error. Defaults to
-5.
+10.
 
 =back
 
@@ -461,13 +505,45 @@ to 'debug' or 'info'.
 
 =item is_running
 
-If the server is running, returns a
-L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object representing
-the server's main process. Otherwise returns undef.
+If the server appears running (the pid file exists and contains a valid
+process), returns a L<Proc::ProcessTable::Process|Proc::ProcessTable::Process>
+object representing the process. Otherwise returns undef.
+
+=item is_listening
+
+Returns a boolean indicating whether the server is listening to the address and
+port specified in I<bind_addr> and I<port>. This is checked to determine
+whether a server start or stop has been successful.
+
+=item status
+
+Returns status of server as an integer. Use the following constants to
+interpret status:
+
+=over
+
+=item *
+
+C<Server::Control::RUNNING> - Pid file exists and contains a valid process
+
+=item *
+
+C<Server::Control::LISTENING> - Something is listening to the specified bind
+address and port
+
+=item *
+
+C<Server::Control::ACTIVE> - Equal to RUNNING & LISTENING
+
+=item *
+
+C<Server::Control::INACTIVE> - Equal to 0 (neither RUNNING nor LISTENING)
+
+=back
 
 =item status_as_string
 
-Returns a string like "server is running (pid 123)" or "server is not running".
+Returns status as a human-readable string, e.g. "server 'foo' is not running"
 
 =back
 
@@ -500,7 +576,16 @@ the current process, as returned by L</is_running>.
 
 =back
 
-=head1
+=head1 TODO
+
+=over
+
+=item *
+
+When a port is being listened to unexpectedly, attempt to report which process
+is listening (via lsof, fuser, etc.)
+
+=back
 
 =head1 SEE ALSO
 
