@@ -7,7 +7,7 @@ use Guard;
 use HTTP::Server::Simple;
 use Proc::ProcessTable;
 use Server::Control::Simple;
-use Server::Control::Test::Log::Dispatch;
+use Test::Log::Dispatch;
 use Test::Most;
 use strict;
 use warnings;
@@ -29,8 +29,7 @@ sub test_setup : Tests(setup) {
         server   => $self->{server},
         pid_file => $self->{pid_file},
     );
-    $self->{log} =
-      Server::Control::Test::Log::Dispatch->new( min_level => 'info' );
+    $self->{log} = Test::Log::Dispatch->new( min_level => 'info' );
     Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
     $self->{stop_guard} = guard( \&kill_my_children );
 }
