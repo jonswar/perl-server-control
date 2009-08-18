@@ -228,7 +228,7 @@ sub status_as_string {
     my $msg =
         ( $status == INACTIVE ) ? "not running"
       : ( $status == RUNNING )
-      ? sprintf( "running (pid %d) but not listening to port %d",
+      ? sprintf( "running (pid %d), but not listening to port %d",
         $self->is_running->pid, $port )
       : ( $status == LISTENING )
       ? sprintf( "not running, but something is listening to port %d", $port )
