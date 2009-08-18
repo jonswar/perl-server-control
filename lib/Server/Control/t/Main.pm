@@ -62,7 +62,7 @@ sub test_simple : Tests(8) {
     ok( !$ctl->is_running(), "not running" );
 }
 
-sub test_port_busy : Tests(2) {
+sub test_port_busy : Tests(3) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
@@ -74,11 +74,34 @@ sub test_port_busy : Tests(2) {
     };
     sleep(1);
 
-    ok( !$ctl->is_running(), "not running" );
+    ok( !$ctl->is_running(),  "not running" );
+    ok( $ctl->is_listening(), "listening" );
     $ctl->start();
     $log->contains_ok(
         qr/pid file '.*' does not exist, but something is listening to port $port/
     );
+}
+
+sub test_wrong_port : Tests(6) {
+    my $self = shift;
+    my $ctl  = $self->{ctl};
+    my $log  = $self->{log};
+
+    # Tell ctl object to expect wrong port, to simulate a server not starting properly
+    my $new_port = $port + 1;
+    $ctl->{port}                = $new_port;
+    $ctl->{wait_for_start_secs} = 1;
+    $ctl->start();
+    $log->contains_ok(qr/waiting for server start/);
+    $log->contains_only_ok(
+        qr/after .*, server .* is running \(pid .*\), but not listening to port $new_port/
+    );
+    ok( $ctl->is_running(),    "running" );
+    ok( !$ctl->is_listening(), "not listening" );
+
+    $ctl->stop();
+    $log->contains_ok(qr/stopped/);
+    ok( !$ctl->is_running(), "not running" );
 }
 
 sub test_no_pid_file_specified : Test(1) {
