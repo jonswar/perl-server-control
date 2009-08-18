@@ -1,29 +1,22 @@
 package Server::Control::Simple;
-use File::Slurp;
 use Moose;
+use Moose::Util::TypeConstraints;
 use strict;
 use warnings;
 
-extends 'Server::Control';
+extends 'Server::Control::NetServer';
 
-has 'server' => ( is => 'ro', isa => 'HTTP::Server::Simple', required => 1 );
-has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
+subtype 'Server::Control::Simple::WithNetServer' => as 'HTTP::Server::Simple' =>
+  where { defined( $_->net_server() ) } => message {
+    'must be an HTTP::Server::Simple subclass with a net_server defined';
+  };
+has '+server' => ( isa      => 'Server::Control::Simple::WithNetServer' );
+has '+port'   => ( required => 1 );
 
 __PACKAGE__->meta->make_immutable();
 
-sub _build_port {
-    my $self = shift;
-    return $self->server->port;
-}
-
 sub _build_pid_file {
-    die "must specify pid_file";
-}
-
-sub do_start {
-    my $self = shift;
-
-    $self->server->run( pid_file => $self->pid_file, @_ );
+    die "pid_file must be provided to constructor";
 }
 
 1;
@@ -39,17 +32,18 @@ servers
 
 =head1 SYNOPSIS
 
+    package My::Server;
+    use base qw(HTTP::Server::Simple::CGI);
+    sub net_server { 'PreForkSimple' }
+
+    ---
+
     use Server::Control::Simple;
 
-    my $server = HTTP::Server::Simple->new(
-        net_server => 'PreForkSimple',
-        ...
-    );
+    my $server = My::Server->new( ... );
     my $ctl = Server::Control::Simple->new( server => $server, pid_file => '/path/to/server.pid' );
     if ( !$ctl->is_running() ) {
-        $ctl->start(
-           # insert Net::Server arguments here
-        );
+        $ctl->start( ... );
     }
 
 =head1 DESCRIPTION
@@ -66,20 +60,16 @@ except for:
 
 =item server
 
-Specifies the C<HTTP::Server::Simple> object. Required. When creating the
-server object you should specify a forking implementation for C<net_server>
-like C<Net::Server::Fork>, C<Net::Server::PreForkSimple>, or
-C<Net::Server::PreFork>. See synopsis for an example and
-L<Net::Server|Net::Server> for more details.
+Specifies a C<HTTP::Server::Simple> based object. Required.
 
 =item pid_file
 
-This is required for the base class. It will be passed automatically to
-Net::Server.
+Required. Will be passed along to C<server-E<gt>run()>.
 
 =item port
 
-This is no longer required since it can be extracted from the server object.
+Must either be provided here, or available from C<server-E<gt>port>. Will be
+passed along to C<server-E<gt>run()>.
 
 =back
 
@@ -91,8 +81,7 @@ The methods are as described in L<Server::Control|Server::Control>, except for:
 
 =item start
 
-Arguments to this method, normally ignored, are passed along to the C<run>
-method on the server object.
+Arguments to this method are passed along to C<server-E<gt>run()>.
 
 =back
 

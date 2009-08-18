@@ -7,7 +7,7 @@ use IO::Socket;
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Proc::ProcessTable;
-use Server::Control::Util qw(trim);
+use Server::Control::Util qw(trim dp);
 use Time::HiRes qw(usleep);
 use strict;
 use warnings;
@@ -31,7 +31,7 @@ use constant {
     INACTIVE  => 0,
     RUNNING   => 1,
     LISTENING => 2,
-    ACTIVE    => 4,
+    ACTIVE    => 3,
 };
 
 #
@@ -94,11 +94,14 @@ sub handle_cmdline {
 }
 
 sub start {
-    my ($self) = @_;
+    my $self = shift;
 
-    return unless $self->_assert_not_running();
-
-    if ( $self->is_listening() ) {
+    if ( my $proc = $self->is_running() ) {
+        $log->warnf( "%s already running (pid %d)",
+            $self->description(), $proc->pid );
+        return;
+    }
+    elsif ( $self->is_listening() ) {
         $log->warnf(
             "cannot start %s - pid file '%s' does not exist, but something is listening to port %d",
             $self->description(), $self->pid_file(), $self->port(),
@@ -108,7 +111,7 @@ sub start {
 
     my $error_size_start = $self->_start_error_log_watch();
 
-    eval { $self->do_start() };
+    eval { $self->do_start(@_) };
     if ( my $err = $@ ) {
         $log->errorf( "error while trying to start %s: %s",
             $self->description(), $err );
@@ -119,34 +122,37 @@ sub start {
     $log->infof("waiting for server start");
     my $wait_until = time() + $self->wait_for_start_secs();
     while ( time < $wait_until ) {
-        last if $self->is_active();
+        if ( $self->status == ACTIVE ) {
+            ( my $status = $self->status_as_string() ) =~
+              s/running/now running/;
+            $log->info($status);
+            return;
+        }
         usleep(100000);
     }
 
-    if ( $self->is_active() ) {
-        $log->info( $self->status_as_string() );
-    }
-    else {
-        $log->warnf(
-            "after %d secs, %s",
-            $self->wait_for_start_secs(),
-            $self->status_as_string()
-        );
-        $self->_report_error_log_output($error_size_start);
-    }
+    $log->warnf(
+        "after %d secs, %s",
+        $self->wait_for_start_secs(),
+        $self->status_as_string()
+    );
+    $self->_report_error_log_output($error_size_start);
 }
 
 sub stop {
     my ($self) = @_;
 
-    my $proc;
-    return unless $proc = $self->_assert_running();
+    my $proc = $self->is_running();
+    unless ($proc) {
+        $log->warn( $self->status_as_string() );
+        return;
+    }
 
     my ( $uid, $eid ) = ( $<, $> );
     if ( ( $eid || $uid ) && $proc->uid != $uid && !$self->use_sudo() ) {
         $log->infof(
             "warning: process %d is owned by uid %d ('%s'), different than current user %d ('%s'); may not be able to stop server",
-            $pid,
+            $proc->pid,
             $proc->uid,
             scalar( getpwuid( $proc->uid ) ),
             $uid,
@@ -154,7 +160,7 @@ sub stop {
         );
     }
 
-    eval { $self->do_stop() };
+    eval { $self->do_stop($proc) };
     if ( my $err = $@ ) {
         $log->errorf( "error while trying to stop %s: %s",
             $self->description(), $err );
@@ -164,20 +170,18 @@ sub stop {
     $log->infof("waiting for server stop");
     my $wait_until = time() + $self->wait_for_stop_secs();
     while ( time < $wait_until ) {
-        last if $self->is_inactive();
+        if ( $self->status == INACTIVE ) {
+            $log->infof( "%s has stopped", $self->description() );
+            return;
+        }
         usleep(100000);
     }
 
-    if ( $self->is_inactive() ) {
-        $log->info( $self->status_as_string() );
-    }
-    else {
-        $log->warnf(
-            "after %d secs, %s",
-            $self->wait_for_start_secs(),
-            $self->status_as_string()
-        );
-    }
+    $log->warnf(
+        "after %d secs, %s",
+        $self->wait_for_stop_secs(),
+        $self->status_as_string()
+    );
 }
 
 sub restart {
@@ -196,7 +200,7 @@ sub restart {
 sub ping {
     my ($self) = @_;
 
-    $log->infof( "%s", $self->status_as_string() );
+    $log->info( $self->status_as_string() );
 }
 
 sub do_start {
@@ -212,29 +216,26 @@ sub do_stop {
 sub status {
     my ($self) = @_;
 
-    return ( $self->is_running() ? RUNNING   : 0 ) &
+    return ( $self->is_running() ? RUNNING   : 0 ) |
       ( $self->is_listening()    ? LISTENING : 0 );
 }
 
 sub status_as_string {
     my ($self) = @_;
 
-    my $proc = $self->is_running();
-    my $port = $self->port;
-    my $msg  = {
-        INACTIVE => "not running",
-        RUNNING  => sprintf(
-            "running (pid %d) but not listening to port %d",
-            $proc->pid, $port
-        ),
-        LISTENING => sprintf(
-            "not running, but something is listening to port %d", $port
-        ),
-        ACTIVE => sprintf(
-            "running (pid %d) and listening to port %d",
-            $proc->pid, $port
-        ),
-    }->{ $self->status() };
+    my $port   = $self->port;
+    my $status = $self->status();
+    my $msg =
+        ( $status == INACTIVE ) ? "not running"
+      : ( $status == RUNNING )
+      ? sprintf( "running (pid %d) but not listening to port %d",
+        $self->is_running->pid, $port )
+      : ( $status == LISTENING )
+      ? sprintf( "not running, but something is listening to port %d", $port )
+      : ( $status == ACTIVE )
+      ? sprintf( "running (pid %d) and listening to port %d",
+        $self->is_running->pid, $port )
+      : die "invalid status: $status";
     return join( " is ", $self->description(), $msg );
 }
 
@@ -242,8 +243,14 @@ sub is_running {
     my ($self) = @_;
 
     my $pid_file = $self->pid_file();
-    if ( -e $pid_file ) {
-        my $pid = $self->_read_pid_file($pid_file);
+    my $pid_contents = eval { read_file($pid_file) };
+    if ($@) {
+        $log->debugf( "pid file '%s' does not exist", $pid_file )
+          if $log->is_debug;
+        return undef;
+    }
+    else {
+        my ($pid) = ( $pid_contents =~ /^\s*(\d+)\s*$/ );
         unless ( defined($pid) ) {
             $log->infof( "pid file '%s' does not contain a valid process id!",
                 $pid_file );
@@ -265,11 +272,23 @@ sub is_running {
             return undef;
         }
     }
-    else {
-        $log->debugf( "pid file '%s' does not exist", $pid_file )
-          if $log->is_debug;
-        return undef;
+}
+
+sub is_listening {
+    my ($self) = @_;
+
+    my $is_listening = IO::Socket::INET->new(
+        PeerAddr => $self->bind_addr(),
+        PeerPort => $self->port()
+    ) ? 1 : 0;
+    if ( $log->is_debug ) {
+        $log->debugf(
+            "%s is listening to %s:%d",
+            $is_listening ? "something" : "nothing",
+            $self->bind_addr(), $self->port()
+        );
     }
+    return $is_listening;
 }
 
 #
@@ -306,54 +325,12 @@ sub _report_error_log_output {
     }
 }
 
-sub _assert_running {
-    my ($self) = @_;
-
-    if ( my $proc = $self->is_running() ) {
-        return $proc;
-    }
-    else {
-        $log->infof( "%s not running", $self->description() );
-        return 0;
-    }
-}
-
-sub _assert_not_running {
-    my ($self) = @_;
-
-    my $proc = $self->is_running();
-    if ( !$proc ) {
-        return 1;
-    }
-    else {
-        $log->infof( "%s already running (pid %d)",
-            $self->description(), $proc->pid );
-        return 0;
-    }
-}
-
 sub _handle_corrupt_pid_file {
     my ($self) = @_;
 
     my $pid_file = $self->pid_file();
     $log->infof( "deleting bogus pid file '%s'", $pid_file );
     unlink $pid_file or die "cannot remove '$pid_file': $!";
-}
-
-sub is_listening {
-    my ($self) = @_;
-
-    return IO::Socket::INET->new(
-        PeerAddr => $self->bind_addr(),
-        PeerPort => $self->port()
-    ) ? 1 : 0;
-}
-
-sub _read_pid_file {
-    my ( $self, $pid_file ) = @_;
-
-    my $pid = trim( read_file($pid_file) );
-    return $pid =~ /^\d+$/ ? $pid : undef;
 }
 
 1;
@@ -569,7 +546,7 @@ L<Server::Control::Apache|Server::Control::Apache> for an example.
 =item do_start
 
 This actually starts the server - it is called by L</start> and must be defined
-by the subclass.
+by the subclass. Any parameters to L</start> are passed here.
 
 =item do_stop ($proc)
 

@@ -4,9 +4,10 @@ use Capture::Tiny qw(capture);
 use File::Slurp;
 use File::Temp qw(tempdir);
 use Guard;
-use HTTP::Server::Simple;
 use Proc::ProcessTable;
+use POSIX qw(geteuid getegid);
 use Server::Control::Simple;
+use Server::Control::Test::Server::Simple;
 use Test::Log::Dispatch;
 use Test::Most;
 use strict;
@@ -18,35 +19,39 @@ $SIG{CHLD} = 'IGNORE';
 # How to pick this w/o possibly conflicting...
 my $port = 15432;
 
+my $parent_pid = $$;
+
 sub test_setup : Tests(setup) {
     my $self = shift;
 
-    $self->{server} = HTTP::Server::Simple->new($port);
+    $self->{server} = Server::Control::Test::Server::Simple->new($port);
     $self->{pid_file} =
       tempdir( 'Server-Control-XXXX', TMPDIR => 1, CLEANUP => 1 )
       . "/server.pid";
     $self->{ctl} = Server::Control::Simple->new(
-        server   => $self->{server},
-        pid_file => $self->{pid_file},
+        server     => $self->{server},
+        pid_file   => $self->{pid_file},
+        run_params => { user => geteuid(), group => getegid(), setsid => 1 },
     );
     $self->{log} = Test::Log::Dispatch->new( min_level => 'info' );
     Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
-    $self->{stop_guard} = guard( \&kill_my_children );
+    $self->{stop_guard} =
+      guard( sub { kill_my_children() if $$ == $parent_pid } );
 }
 
-sub test_simple : Tests(11) {
+sub test_simple : Tests(8) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
 
     ok( !$ctl->is_running(), "not running" );
     $ctl->stop();
-    $log->contains_only_ok( qr/server '.*' not running/,
+    $log->contains_only_ok( qr/server '.*' is not running/,
         "stop: is not running" );
 
     $ctl->start();
     $log->contains_ok(qr/waiting for server start/);
-    $log->contains_only_ok(qr/is now running.* - listening on port $port/);
+    $log->contains_only_ok(qr/is now running.* and listening to port $port/);
     ok( $ctl->is_running(), "is running" );
     $ctl->start();
     $log->contains_only_ok( qr/server '.*' already running/,
@@ -82,7 +87,7 @@ sub test_no_pid_file_specified : Test(1) {
     throws_ok {
         Server::Control::Simple->new( server => $self->{server} )->pid_file;
     }
-    qr/no pid_file/;
+    qr/pid_file must be provided/;
 }
 
 sub test_corrupt_pid_file : Test(3) {
