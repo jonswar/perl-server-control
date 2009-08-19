@@ -1,13 +1,12 @@
 package Server::Control;
-use Moose;
-use Cwd qw(realpath);
 use File::Slurp qw(read_file);
-use File::Spec::Functions qw(catdir catfile);
+use File::Spec::Functions qw(catdir);
 use IO::Socket;
+use IPC::System::Simple qw();
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
+use Moose;
 use Proc::ProcessTable;
-use Server::Control::Util qw(trim dp);
 use Time::HiRes qw(usleep);
 use strict;
 use warnings;
@@ -291,6 +290,16 @@ sub is_listening {
     return $is_listening;
 }
 
+sub run_command {
+    my ( $self, $cmd ) = @_;
+
+    if ( $self->use_sudo() ) {
+        $cmd = "sudo $cmd";
+    }
+    $log->debug("running '$cmd'") if $log->is_debug;
+    IPC::System::Simple::run($cmd);
+}
+
 #
 # PRIVATE METHODS
 #
@@ -361,11 +370,6 @@ C<Server::Control> allows you to control servers in the spirit of apachectl,
 where a server is any background process which listens to a port and has a pid
 file.
 
-C<Server::Control> is designed to be subclassed for different types of server.
-For example, L<Server::Control::Simple|Server::Control::Simple> deals with
-L<HTTP::Server::Simple|HTTP::Server::Simple> servers, and
-L<Server::Control::Apache|Server::Control::Apache> deals with Apache httpd.
-
 =head1 FEATURES
 
 =over
@@ -388,6 +392,31 @@ Detects and handles corrupt or out-of-date pid files
 Uses sudo by default when using restricted (< 1024) port
 
 =back
+
+=head1 SUBCLASSES
+
+C<Server::Control> is designed to be subclassed for different types of server.
+The following subclasses are available on CPAN at time of writing:
+
+=over
+
+=item *
+
+L<Server::Control::Apache|Server::Control::Apache> - Apache httpd
+
+=item *
+
+L<Server::Control::Apache|Server::Control::HTTPServerSimple> -
+HTTP::Server::Simple server
+
+=item *
+
+L<Server::Control::Apache|Server::Control::NetServer> - Net::Server server
+
+=back
+
+This list is or will be incomplete. A complete set of subclasses can be found
+on CPAN by searching for "Server::Control".
 
 =head1 CONSTRUCTOR
 
@@ -546,7 +575,8 @@ L<Server::Control::Apache|Server::Control::Apache> for an example.
 =item do_start
 
 This actually starts the server - it is called by L</start> and must be defined
-by the subclass. Any parameters to L</start> are passed here.
+by the subclass. Any parameters to L</start> are passed here. If your server is
+started via the command-line, you may want to use L</run_command>.
 
 =item do_stop ($proc)
 
@@ -554,6 +584,11 @@ This actually stops the server - it is called by L</stop> and may be defined by
 the subclass. By default, it will send a SIGTERM to the process. I<$proc> is a
 L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object representing
 the current process, as returned by L</is_running>.
+
+=item run_command ($cmd)
+
+Runs the specified I<$cmd> on the command line. Adds sudo if necessary (see
+L</use_sudo>), logs the command, and throws runtime errors appropriately.
 
 =back
 
@@ -594,8 +629,7 @@ is listening (via lsof, fuser, etc.)
 =item *
 
 Possibly add pre- and post- start and stop augment hooks like
-L<MooseX::Control|MooseX::Control>, though not sure why inner/augment is better
-than before/after methods.
+L<MooseX::Control|MooseX::Control>
 
 =back
 

@@ -1,6 +1,4 @@
 package Server::Control::Apache;
-use IPC::System::Simple qw(run);
-use Log::Any qw($log);
 use Moose;
 use strict;
 use warnings;
@@ -33,27 +31,23 @@ sub _build_pid_file {
 sub do_start {
     my $self = shift;
 
-    $self->send_httpd_command('start');
+    $self->run_httpd_command('start');
 }
 
 sub do_stop {
     my $self = shift;
 
-    $self->send_httpd_command('stop');
+    $self->run_httpd_command('stop');
 }
 
-sub send_httpd_command {
+sub run_httpd_command {
     my ( $self, $command ) = @_;
 
     my $httpd_binary = $self->httpd_binary();
     my $conf_file    = $self->conf_file();
 
     my $cmd = "$httpd_binary -k $command -f $conf_file";
-    if ( $self->use_sudo() ) {
-        $cmd = "sudo $cmd";
-    }
-    $log->debug("running '$cmd'") if $log->is_debug;
-    run($cmd);
+    $self->run_command($cmd);
 }
 
 1;
