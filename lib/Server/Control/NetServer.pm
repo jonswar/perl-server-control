@@ -1,37 +1,47 @@
 package Server::Control::NetServer;
 use Carp;
+use Server::Control::Util qw(dp);
 use Moose;
 use strict;
 use warnings;
 
 extends 'Server::Control';
 
-has 'server' => (
+has 'net_server_class' => (
     is       => 'ro',
+    isa      => 'Str',
     required => 1
 );
+has 'net_server_params' =>
+  ( is => 'ro', isa => 'HashRef', default => sub { {} } );
 has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
-has 'run_params' => ( is => 'ro', default => sub { {} } );
 
 __PACKAGE__->meta->make_immutable();
 
 sub _build_port {
     my $self = shift;
-    return $self->server->port
-      or die "port must be provided to constructor or available from server";
+    return $self->net_server_params->{port}
+      || die "port must be passed in net_server_params";
 }
 
 sub _build_pid_file {
     my $self = shift;
-    return $self->server->pid_file
-      or die
-      "pid_file must be provided to constructor or available from server";
+    return $self->net_server_params->{pid_file}
+      || die "pid_file must be passed in net_server_params";
+}
+
+sub _build_error_log {
+    my $self            = shift;
+    my $server_log_file = $self->net_server_params->{log_file};
+    return ( defined($server_log_file) && -f $server_log_file )
+      ? $server_log_file
+      : undef;
 }
 
 sub do_start {
     my $self = shift;
 
-    # Fork child to start server in background. Child will exit in
+    # Fork child. Child will fork again to start server, and then exit in
     # Net::Server::post_configure. Parent continues with rest of
     # Server::Control::start() to see if the server has started correctly
     # and report status.
@@ -39,13 +49,11 @@ sub do_start {
     my $child = fork;
     croak "Can't fork: $!" unless defined($child);
     if ( !$child ) {
-        my $server = $self->server;
-        my %auto_params = ( background => 1 );
-        $auto_params{pid_file} = $self->pid_file
-          unless ( $server->can('pid_file') && defined( $server->pid_file ) );
-        $auto_params{port} = $self->port
-          unless ( $server->can('port') && defined( $server->port ) );
-        $server->run( %auto_params, %{ $self->run_params }, @_ );
+        Class::MOP::load_class( $self->net_server_class );
+        $self->net_server_class->run(
+            background => 1,
+            %{ $self->net_server_params }
+        );
         exit(0);    # Net::Server should exit, but just to be safe
     }
 }
@@ -73,13 +81,16 @@ Server::Control::NetServer -- apachectl style control for Net::Server servers
     use Server::Control::NetServer;
 
     my $ctl = Server::Control::NetServer->new(
-        server   => 'My::Server',
-        pid_file => '/path/to/server.pid'
+        net_server_class  => 'My::Server',
+        net_server_params => {
+            pid_file => '/path/to/server.pid',
+            port     => 5678,
+            log_file => '/path/to/file.log'
+        }
     );
     if ( !$ctl->is_running() ) {
-        $ctl->start( ... );
+        $ctl->start(...);
     }
-
 
 =head1 DESCRIPTION
 
@@ -93,32 +104,26 @@ except for:
 
 =over
 
-=item server
+=item net_server_class
 
-Specifies a C<Net::Server> subclass or pre-built object. Required.
+Required. Specifies a C<Net::Server> subclass. Will be loaded if not already.
+
+=item net_server_params
+
+Specifies a hashref of parameters to pass to the server's C<run()> method.
 
 =item pid_file
 
-Must either be provided here, or available from C<server-E<gt>pid_file>. Will
-be passed along to C<server-E<gt>run()>.
+Will be taken from L</net_server_params>.
 
 =item port
 
-Must either be provided here, or available from C<server-E<gt>port>. Will be
-passed along to C<server-E<gt>run()>.
+Will be taken from L</net_server_params>.
 
-=back
+=item error_log
 
-=head1 METHODS
-
-The methods are as described in L<Server::Control|Server::Control>, except for:
-
-=over
-
-=item start
-
-Arguments to this method are passed along to C<server-E<gt>run()>, along with
-C<background =E<gt> 1>.
+If not provided, will attempt to get from C<log_file> key in
+L</net_server_params>.
 
 =back
 
