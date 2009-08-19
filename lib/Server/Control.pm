@@ -111,7 +111,7 @@ sub start {
 
     my $error_size_start = $self->_start_error_log_watch();
 
-    eval { $self->do_start(@_) };
+    eval { $self->do_start() };
     if ( my $err = $@ ) {
         $log->errorf( "error while trying to start %s: %s",
             $self->description(), $err );
