@@ -33,7 +33,7 @@ sub _build_pid_file {
 sub _build_error_log {
     my $self            = shift;
     my $server_log_file = $self->net_server_params->{log_file};
-    return ( defined($server_log_file) && -f $server_log_file )
+    return ( defined($server_log_file) && $server_log_file ne 'Sys::Syslog' )
       ? $server_log_file
       : undef;
 }
@@ -95,7 +95,7 @@ Server::Control::NetServer -- apachectl style control for Net::Server servers
 =head1 DESCRIPTION
 
 C<Server::Control::NetServer> is a subclass of
-L<Server::Control|Server::Control> for Net::Server servers.
+L<Server::Control|Server::Control> for L<Net::Server|Net::Server> servers.
 
 =head1 CONSTRUCTOR
 
@@ -133,7 +133,7 @@ Jonathan Swartz
 
 =head1 SEE ALSO
 
-L<Server::Control|Server::Control>
+L<Server::Control|Server::Control>, L<Net::Server|Net::Server>
 
 =head1 COPYRIGHT & LICENSE
 
