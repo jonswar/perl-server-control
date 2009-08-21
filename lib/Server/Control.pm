@@ -393,10 +393,10 @@ Uses sudo by default when using restricted (< 1024) port
 
 =back
 
-=head1 SUBCLASSES
+=head1 AVAILABLE SUBCLASSES
 
-C<Server::Control> is designed to be subclassed for different types of server.
-The following subclasses are available on CPAN at time of writing:
+C<Server::Control> is designed to be subclassed for different types of servers.
+The following subclasses are currently available as part of this distribution:
 
 =over
 
@@ -415,8 +415,8 @@ L<Server::Control::Apache|Server::Control::NetServer> - Net::Server server
 
 =back
 
-This list is or will be incomplete. A complete set of subclasses can be found
-on CPAN by searching for "Server::Control".
+These will probably be moved into their own distributions once the
+implementation stabilizes.
 
 =head1 CONSTRUCTOR
 
