@@ -28,8 +28,7 @@ sub _build_conf_file {
     my $self = shift;
     return defined( $self->conf_dir )
       ? catdir( $self->conf_dir, 'httpd.conf' )
-      : die
-      "cannot determine conf_file - no conf_file, conf_dir, or root_dir specified";
+      : die "no conf_file specified and cannot determine conf_dir";
 }
 
 sub _build_pid_file {
