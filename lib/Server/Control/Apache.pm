@@ -1,4 +1,5 @@
 package Server::Control::Apache;
+use File::Spec::Functions qw(catdir);
 use File::Which qw(which);
 use Moose;
 use strict;
