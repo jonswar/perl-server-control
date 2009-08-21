@@ -1,24 +1,35 @@
 package Server::Control::Apache;
+use File::Which qw(which);
 use Moose;
 use strict;
 use warnings;
 
 extends 'Server::Control';
 
-has 'httpd_binary' => ( is => 'ro', default    => '/usr/bin/httpd' );
+has 'httpd_binary' => ( is => 'ro', lazy_build => 1 );
 has 'conf_file'    => ( is => 'ro', lazy_build => 1 );
 has 'conf_dir'     => ( is => 'ro', lazy_build => 1 );
 
 __PACKAGE__->meta->make_immutable();
 
+sub _build_httpd_binary {
+    my $self  = shift;
+    my $httpd = scalar( which('httpd') )
+      or die "no httpd_binary specified and cannot find in path";
+}
+
 sub _build_conf_dir {
     my $self = shift;
-    return catdir( $self->root_dir, "conf" );
+    return
+      defined( $self->root_dir ) ? catdir( $self->root_dir, "conf" ) : undef;
 }
 
 sub _build_conf_file {
     my $self = shift;
-    return catdir( $self->conf_dir, 'httpd.conf' );
+    return defined( $self->conf_dir )
+      ? catdir( $self->conf_dir, 'httpd.conf' )
+      : die
+      "cannot determine conf_file - no conf_file, conf_dir, or root_dir specified";
 }
 
 sub _build_pid_file {
@@ -80,6 +91,44 @@ feature set.
 
 This distribution comes with a binary, apachectlp, which you may want to use
 instead of this module.
+
+=head1 CONSTRUCTOR
+
+The constructor options are as described in L<Server::Control|Server::Control>,
+except for:
+
+=over
+
+=item httpd_binary
+
+Path to httpd binary. By default, searches for httpd in the user's PATH.
+
+=item conf_dir
+
+Path to conf dir. Will try to use L<Server::Control/root_dir>/conf if not
+specified.
+
+=item conf_file
+
+Path to conf file. Will try to use L</conf_dir>/httpd.conf if not specified.
+Throws an error if it cannot be determined.
+
+=item pid_file
+
+Defaults to L<Server::Control/log_dir>/httpd.pid, the Apache default.
+
+=back
+
+=head1 TODO
+
+=over
+
+=item *
+
+Parse Apache config to determine things like port, bind_addr, error_log, and
+pid_file.
+
+=back
 
 =head1 AUTHOR
 
