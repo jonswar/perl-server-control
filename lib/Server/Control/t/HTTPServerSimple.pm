@@ -11,22 +11,39 @@ my $test_server_class = Moose::Meta::Class->create_anon_class(
     methods      => {
         net_server => sub { 'Net::Server::Fork' }
     },
-    cache => 1
-)->name;
+);
 
 sub create_ctl {
     my $self = shift;
 
     return Server::Control::HTTPServerSimple->new(
-        server_class      => $test_server_class,
+        server_class      => $test_server_class->name,
         net_server_params => {
             port     => $self->{port},
-            pid_file => $self->{pid_file},
-            log_file => $self->{log_file},
+            pid_file => $self->{temp_dir} . "/server.pid",
+            log_file => $self->{temp_dir} . "/server.log",
             user     => geteuid(),
             group    => getegid()
         },
     );
+}
+
+sub test_bad_server_class : Test(2) {
+    my $self = shift;
+
+    my $bad_server_class = Moose::Meta::Class->create_anon_class(
+        superclasses => ['HTTP::Server::Simple'],
+        cache        => 1
+    );
+    throws_ok {
+        Server::Control::HTTPServerSimple->new(
+            server_class => $bad_server_class->name );
+    }
+    qr/Must be an HTTP::Server::Simple subclass with a net_server defined/;
+    throws_ok {
+        Server::Control::HTTPServerSimple->new( server_class => 'bleah' );
+    }
+    qr/Must be an HTTP::Server::Simple subclass with a net_server defined/;
 }
 
 sub test_missing_params : Test(2) {
@@ -34,14 +51,14 @@ sub test_missing_params : Test(2) {
 
     throws_ok {
         Server::Control::HTTPServerSimple->new(
-            server_class      => $test_server_class,
+            server_class      => $test_server_class->name,
             net_server_params => { port => $self->{port} }
         )->pid_file();
     }
     qr/pid_file must be passed/;
     throws_ok {
         Server::Control::HTTPServerSimple->new(
-            server_class      => $test_server_class,
+            server_class      => $test_server_class->name,
             net_server_params => { pid_file => $self->{pid_file} }
         )->port();
     }
