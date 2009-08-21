@@ -125,6 +125,10 @@ Defaults to L<Server::Control/log_dir>/httpd.pid, the Apache default.
 Parse Apache config to determine things like port, bind_addr, error_log, and
 pid_file.
 
+=item *
+
+Add a convenient CLI, e.g. apachectlp
+
 =back
 
 =head1 AUTHOR
