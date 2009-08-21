@@ -13,8 +13,8 @@ sub create_ctl {
         net_server_class  => 'Net::Server::Fork',
         net_server_params => {
             port     => $self->{port},
-            pid_file => $self->{pid_file},
-            log_file => $self->{log_file},
+            pid_file => $self->{temp_dir} . "/server.pid",
+            log_file => $self->{temp_dir} . "/server.log",
             user     => geteuid(),
             group    => getegid()
         },
