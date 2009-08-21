@@ -7,21 +7,20 @@ use Guard;
 use HTTP::Server::Simple;
 use Log::Any;
 use Net::Server;
+use Proc::Killfam;
 use Proc::ProcessTable;
 use Test::Log::Dispatch;
 use Test::Most;
 use strict;
 use warnings;
 
+our @ctls;
+
 sub test_startup : Tests(startup) {
     my $self = shift;
 
-    # Automatically reap child processes
-    $SIG{CHLD} = 'IGNORE';
-
     my $parent_pid = $$;
-    $self->{stop_guard} =
-      guard( sub { kill_my_children() if $$ == $parent_pid } );
+    $self->{stop_guard} = guard( sub { cleanup() if $$ == $parent_pid } );
 }
 
 sub test_setup : Tests(setup) {
@@ -30,12 +29,11 @@ sub test_setup : Tests(setup) {
     # How to pick this w/o possibly conflicting...
     $self->{port} = 15432;
     $self->{temp_dir} =
-      tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
-    $self->{pid_file} = $self->{temp_dir} . "/server.pid";
-    $self->{log_file} = $self->{temp_dir} . "/server.log";
-    $self->{log}      = Test::Log::Dispatch->new( min_level => 'info' );
+      tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 0 );
+    $self->{log} = Test::Log::Dispatch->new( min_level => 'info' );
     Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
     $self->{ctl} = $self->create_ctl();
+    push( @ctls, $self->{ctl} );
 }
 
 sub test_simple : Tests(8) {
@@ -71,7 +69,7 @@ sub test_port_busy : Tests(3) {
     # Fork and start another server listening on same port
     my $child = fork();
     if ( !$child ) {
-        Net::Server->run( port => $port, log_file => $self->{log_file} );
+        Net::Server->run( port => $port, log_file => $ctl->error_log );
         exit;
     }
     sleep(1);
@@ -97,7 +95,7 @@ sub test_wrong_port : Tests(7) {
     $ctl->{wait_for_start_secs} = 1;
     $ctl->start();
     $log->contains_ok(qr/waiting for server start/);
-    $log->contains_only_ok(
+    $log->contains_ok(
         qr/after .*, server .* is running \(pid .*\), but not listening to port $new_port/
     );
     ok( $ctl->is_running(),    "running" );
@@ -112,7 +110,7 @@ sub test_corrupt_pid_file : Test(3) {
     my $self     = shift;
     my $ctl      = $self->{ctl};
     my $log      = $self->{log};
-    my $pid_file = $self->{pid_file};
+    my $pid_file = $ctl->pid_file;
 
     write_file( $pid_file, "blah" );
     $ctl->start();
@@ -122,29 +120,29 @@ sub test_corrupt_pid_file : Test(3) {
     $ctl->stop();
 }
 
-# Probably a better way to do this on cpan...
+# NOTE: Doesn't work with apache and other servers that end up with ppid=1
 sub kill_my_children {
     my $self = shift;
 
-    my $t              = new Proc::ProcessTable;
-    my $get_child_pids = sub {
-        map { $_->pid } grep { $_->ppid == $$ } @{ $t->table };
-    };
-    my $send_signal = sub {
-        my ( $signal, $pids ) = @_;
-        explain( "sending signal $signal to " . join( ", ", @$pids ) . "\n" );
-        kill $signal, @$pids;
-    };
-
-    if ( my @child_pids = $get_child_pids->() ) {
-        $send_signal->( 15, \@child_pids );
-        for ( my $i = 0 ; $i < 3 && $get_child_pids->() ; $i++ ) {
+    foreach my $signal ( 15, 9 ) {
+        my $pt = new Proc::ProcessTable;
+        if ( my @child_pids = Proc::Killfam::get_pids( $pt->table, $$ ) ) {
+            explain("sending signal $signal to "
+                  . join( ", ", @child_pids )
+                  . "\n" );
+            Proc::Killfam::killfam( $signal, \@child_pids );
             sleep(1);
         }
-        if ( @child_pids = $get_child_pids->() ) {
-            $send_signal->( 9, \@child_pids );
+    }
+}
+
+sub cleanup {
+    foreach my $ctl (@ctls) {
+        if ( $ctl->is_running() ) {
+            $ctl->stop();
         }
     }
+    kill_my_children();
 }
 
 1;
