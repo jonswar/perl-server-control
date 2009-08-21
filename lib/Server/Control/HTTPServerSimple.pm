@@ -3,14 +3,23 @@ use Carp;
 use Server::Control::Util qw(dp);
 use Moose;
 use Moose::Meta::Class;
+use Moose::Util::TypeConstraints;
 use strict;
 use warnings;
 
 extends 'Server::Control';
 
-has 'server_class' => ( is => 'ro', isa => 'Str', required => 1 );
-has 'server'           => ( is => 'ro', lazy_build => 1 );
-has 'net_server_class' => ( is => 'ro', isa        => 'Str' );
+subtype 'Server::Control::HTTPServerSimple::WithNetServer' => as 'Str' =>
+  where { $_->can('net_server') && defined( $_->net_server() ) } => message {
+    'Must be an HTTP::Server::Simple subclass with a net_server defined';
+  };
+
+has 'server_class' => (
+    is       => 'ro',
+    isa      => 'Server::Control::HTTPServerSimple::WithNetServer',
+    required => 1
+);
+has 'server' => ( is => 'ro', lazy_build => 1 );
 has 'net_server_params' =>
   ( is => 'ro', isa => 'HashRef', default => sub { {} } );
 has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
@@ -32,31 +41,16 @@ sub _build_pid_file {
 sub _build_error_log {
     my $self            = shift;
     my $server_log_file = $self->net_server_params->{log_file};
-    return ( defined($server_log_file) && -f $server_log_file )
+    return ( defined($server_log_file) && $server_log_file ne 'Sys::Syslog' )
       ? $server_log_file
       : undef;
 }
 
 sub _build_server {
     my $self = shift;
-    Class::MOP::load_class( $self->server_class );
 
-    # If net_server_class is provided, create an anon subclass of server_class to use it
-    my $server_class;
-    if ( my $net_server_class = $self->net_server_class ) {
-        Class::MOP::load_class($net_server_class);
-        $server_class = Moose::Meta::Class->create_anon_class(
-            superclasses => [ $self->server_class ],
-            methods      => {
-                net_server => sub { $net_server_class }
-            },
-            cache => 1
-        )->name;
-    }
-    else {
-        $server_class = $self->server_class();
-    }
-    return $server_class->new( $self->port );
+    Class::MOP::load_class( $self->server_class );
+    return $self->server_class->new( $self->port );
 }
 
 sub do_start {
@@ -80,13 +74,13 @@ HTTP::Server::Simple servers
 
     package My::Server;
     use base qw(HTTP::Server::Simple);
+    sub net_server { 'Net::Server::PreForkSimple' }
 
     ---
 
     use Server::Control::HTTPServerSimple;
     my $ctl = Server::Control::HTTPServerSimple->new(
         server_class => 'My::Server',
-        net_server_class  => 'Net::Server::PreForkSimple',
         net_server_params => {
             pid_file => '/path/to/server.pid',
             port     => 5678,
@@ -100,9 +94,8 @@ HTTP::Server::Simple servers
 =head1 DESCRIPTION
 
 C<Server::Control::HTTPServerSimple> is a subclass of
-L<Server::Control|Server::Control> for HTTP::Server::Simple servers.
-
-This must be used with a net_server class specified
+L<Server::Control|Server::Control> for
+L<HTTP::Server::Simple|HTTP::Server::Simple> servers.
 
 =head1 CONSTRUCTOR
 
@@ -116,10 +109,8 @@ except for:
 Required. Specifies a C<HTTP::Server::Simple> subclass. Will be loaded if not
 already.
 
-=item net_server_class
-
-Specifies a C<Net::Server> subclass. This needs to either be specified here or
-in the HTTP::Server::Simple subclass. Will be loaded if not already.
+This subclass must specify a C<net_server> class, because vanilla
+HTTP::Server::Simple does not create pid files.
 
 =item net_server_params
 
@@ -146,7 +137,8 @@ Jonathan Swartz
 
 =head1 SEE ALSO
 
-L<Server::Control|Server::Control>
+L<Server::Control|Server::Control>,
+L<HTTP::Server::Simple|HTTP::Server::Simple>
 
 =head1 COPYRIGHT & LICENSE
 
