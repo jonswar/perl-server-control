@@ -358,7 +358,7 @@ Server::Control -- Flexible apachectl style control for servers
 
     my $apache = Server::Control::Apache->new(
         root_dir     => '/my/apache/dir',
-        httpd_binary => '/usr/bin/httpd'
+        port         => 80
     );
     if ( !$apache->is_running() ) {
         $apache->start();
