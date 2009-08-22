@@ -11,7 +11,7 @@ use Time::HiRes qw(usleep);
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 has 'bind_addr'           => ( is => 'ro', default    => 'localhost' );
 has 'description'         => ( is => 'ro', lazy_build => 1 );
