@@ -264,11 +264,13 @@ sub is_running {
             return $proc;
         }
         else {
-            $log->infof(
-                "pid file '%s' contains a non-existing process id '%d'!",
-                $pid_file, $pid );
-            $self->_handle_corrupt_pid_file();
-            return undef;
+            if ( -f $pid_file ) {
+                $log->infof(
+                    "pid file '%s' contains a non-existing process id '%d'!",
+                    $pid_file, $pid );
+                $self->_handle_corrupt_pid_file();
+                return undef;
+            }
         }
     }
 }

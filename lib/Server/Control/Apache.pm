@@ -1,42 +1,132 @@
 package Server::Control::Apache;
-use File::Spec::Functions qw(catdir);
+use Apache::ConfigParser;
+use File::Spec::Functions qw(catdir catfile);
 use File::Which qw(which);
+use Log::Any qw($log);
 use Moose;
 use strict;
 use warnings;
 
 extends 'Server::Control';
 
-has 'httpd_binary' => ( is => 'ro', lazy_build => 1 );
-has 'conf_file'    => ( is => 'ro', lazy_build => 1 );
-has 'conf_dir'     => ( is => 'ro', lazy_build => 1 );
+has 'root_dir'      => ( is => 'ro', lazy_build => 1 );
+has 'conf_file'     => ( is => 'ro', lazy_build => 1 );
+has 'httpd_binary'  => ( is => 'ro', lazy_build => 1 );
+has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
+has 'port'          => ( is => 'ro', required   => 0, lazy_build => 1 );
 
 __PACKAGE__->meta->make_immutable();
 
+sub BUILD {
+    my ( $self, $params ) = @_;
+
+    # Ensure that we have an existent conf_file after object is built. It
+    # can come from the conf_file or root_dir parameter.
+    #
+    if ( my $conf_file = $self->{conf_file} ) {
+        die "no such conf file '$conf_file'" unless -f $conf_file;
+    }
+    elsif ( defined( $self->{root_dir} ) ) {
+        my $default_conf_file =
+          catfile( $self->{root_dir}, "conf", "httpd.conf" );
+        if ( -f $default_conf_file ) {
+            $self->{conf_file} = $default_conf_file;
+            $log->debugf( "defaulting conf file to '%s'", $default_conf_file )
+              if $log->is_debug;
+            return;
+        }
+        else {
+            die
+              "no conf_file specified and cannot find at '$default_conf_file'";
+        }
+    }
+    else {
+        die "no conf_file or root_dir specified";
+    }
+}
+
 sub _build_httpd_binary {
     my $self  = shift;
-    my $httpd = scalar( which('httpd') )
+    my $httpd = ( which('httpd') )[0]
       or die "no httpd_binary specified and cannot find in path";
+    $log->debugf("setting httpd_binary to '$httpd'") if $log->is_debug;
+    return $httpd;
 }
 
-sub _build_conf_dir {
-    my $self = shift;
-    return
-      defined( $self->root_dir ) ? catdir( $self->root_dir, "conf" ) : undef;
+sub _build_parsed_config {
+    my $self      = shift;
+    my $cp        = Apache::ConfigParser->new;
+    my $conf_file = $self->conf_file;
+    $cp->parse_file($conf_file)
+      or die "problem parsing conf file '$conf_file': " . $cp->errstr;
+
+    my %parsed_config = map {
+        my ($directive) = ( $cp->find_down_directive_names($_) );
+        defined($directive) ? ( $_, $directive->value ) : ()
+    } qw(ServerRoot Listen PidFile ErrorLog);
+    $log->debugf( "found these values in parsed '%s': %s",
+        $conf_file, \%parsed_config )
+      if $log->is_debug;
+
+    return \%parsed_config;
 }
 
-sub _build_conf_file {
+sub _build_root_dir {
     my $self = shift;
-    return defined( $self->conf_dir )
-      ? catdir( $self->conf_dir, 'httpd.conf' )
-      : die "no conf_file specified and cannot determine conf_dir";
+    if ( my $root_dir = $self->parsed_config->{ServerRoot} ) {
+        return $root_dir;
+    }
+    else {
+        die "no root_dir specified and cannot determine from conf file";
+    }
 }
 
 sub _build_pid_file {
     my $self = shift;
-    return defined( $self->log_dir )
-      ? catdir( $self->log_dir, "httpd.pid" )
-      : die "no pid_file specified and cannot determine log_dir";
+    if ( my $pid_file = $self->parsed_config->{PidFile} ) {
+        return $pid_file;
+    }
+    else {
+        $log->debugf( "defaulting pid_file to %s/%s",
+            $self->log_dir, "httpd.pid" )
+          if $log->is_debug;
+        return catdir( $self->log_dir, "httpd.pid" );
+    }
+}
+
+sub _build_bind_addr {
+    my $self = shift;
+    if ( defined( my $listen = $self->parsed_config->{Listen} ) ) {
+        ( my $bind_addr = $listen ) =~ s/:.*$//;
+        return $bind_addr;
+    }
+    else {
+        $log->debugf("defaulting bind_addr to localhost") if $log->is_debug;
+        return 'localhost';
+    }
+}
+
+sub _build_port {
+    my $self = shift;
+    if ( defined( my $listen = $self->parsed_config->{Listen} ) ) {
+        ( my $port = $listen ) =~ s/^.*://;
+        return $port;
+    }
+    else {
+        die "no port specified and cannot determine from Listen directive";
+    }
+}
+
+sub _build_error_log {
+    my $self = shift;
+    if ( defined( my $error_log = $self->parsed_config->{ErrorLog} ) ) {
+        return $error_log;
+    }
+    else {
+        my $error_log = catdir( $self->log_dir, "error_log" );
+        $log->debug("defaulting error_log to '$error_log'") if $log->is_debug;
+        return $error_log;
+    }
 }
 
 sub do_start {
@@ -76,8 +166,9 @@ Server::Control::Apache -- Control Apache ala apachtctl
     use Server::Control::Apache;
 
     my $apache = Server::Control::Apache->new(
-        root_dir     => '/my/apache/dir',
-        port         => 80
+        root_dir  => '/my/apache/dir'
+       # OR    
+        conf_file => '/my/apache/dir/conf/httpd.conf'
     );
     if ( !$apache->is_running() ) {
         $apache->start();
@@ -98,32 +189,26 @@ except for:
 
 =item httpd_binary
 
-Path to httpd binary. By default, searches for httpd in the user's PATH.
-
-=item conf_dir
-
-Path to conf dir. Will try to use L<Server::Control/root_dir>/conf if not
-specified.
+Path to httpd binary. By default, searches for httpd in the user's PATH and
+uses the first one found.
 
 =item conf_file
 
-Path to conf file. Will try to use L</conf_dir>/httpd.conf if not specified.
-Throws an error if it cannot be determined.
-
-=item pid_file
-
-Defaults to L<Server::Control/log_dir>/httpd.pid, the Apache default.
+Path to conf file. Will try to use L<Server::Control/root_dir>/conf/httpd.conf
+if C<root_dir> was specified and C<conf_file> was not. Throws an error if it
+cannot be determined.
 
 =back
+
+This module can usually determine L<Server::Control/bind_addr>,
+L<Server::Control/error_log>, L<Server::Control/pid_file>, and
+L<Server::Control/port> by parsing the conf file. However, if the parsing
+doesn't work or you wish to override certain values, you can pass them in
+manually.
 
 =head1 TODO
 
 =over
-
-=item *
-
-Parse Apache config to determine things like port, bind_addr, error_log, and
-pid_file.
 
 =item *
 

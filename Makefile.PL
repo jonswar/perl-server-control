@@ -18,6 +18,7 @@ build_requires 'Test::Class'          => 0;
 build_requires 'Test::Log::Dispatch'  => 0;
 build_requires 'Test::Most'           => 0;
 
+requires 'Apache::ConfigParser'        => '1.01';
 requires 'File::Slurp'                 => '9999.13';
 requires 'File::Spec::Functions'       => 0;
 requires 'File::Temp'                  => 0;
