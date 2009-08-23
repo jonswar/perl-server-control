@@ -359,8 +359,7 @@ Server::Control -- Flexible apachectl style control for servers
     use Server::Control::Apache;
 
     my $apache = Server::Control::Apache->new(
-        root_dir     => '/my/apache/dir',
-        port         => 80
+        conf_file => '/my/apache/dir/conf/httpd.conf'
     );
     if ( !$apache->is_running() ) {
         $apache->start();
@@ -370,7 +369,7 @@ Server::Control -- Flexible apachectl style control for servers
 
 C<Server::Control> allows you to control servers in the spirit of apachectl,
 where a server is any background process which listens to a port and has a pid
-file.
+file. It is designed to be subclassed for different types of servers.
 
 =head1 FEATURES
 
@@ -397,7 +396,6 @@ Uses sudo by default when using restricted (< 1024) port
 
 =head1 AVAILABLE SUBCLASSES
 
-C<Server::Control> is designed to be subclassed for different types of servers.
 The following subclasses are currently available as part of this distribution:
 
 =over
