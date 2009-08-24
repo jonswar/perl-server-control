@@ -1,0 +1,110 @@
+#!/usr/bin/perl -w
+use strict;
+use Server::Control::Apache;
+use Server::Control::Util qw(dp);
+use Hash::MoreUtils qw(slice_def);
+use Getopt::Long qw(GetOptions);
+my ( $help, $cmd, $verbose, %ctlopts );
+my $class = 'Server::Control::Apache';
+GetOptions(
+    'b|httpd-binary' => \$ctlopts{httpd_binary},
+    'c|class=s'      => \$class,
+    'd=s'            => \$ctlopts{root_dir},
+    'f=s'            => \$ctlopts{conf_file},
+    'h|help'         => \$help,
+    'k=s'            => \$cmd,
+    'v|verbose'      => \$verbose,
+
+    'bind-addr' => \$ctlopts{bind_addr},
+    'error-log' => \$ctlopts{error_log},
+    'port'      => \$ctlopts{port},
+    'pid_file'  => \$ctlopts{pid_file},
+) or pod2usage(2);
+pod2usage(1)
+  if $help
+      || !$cmd
+      || !grep { defined( $ctlopts{$_} ) } qw(server_root conf_file);
+
+%ctlopts = slice_def( \%ctlopts, keys(%ctlopts) );
+my $ctl = $class->new(%ctlopts);
+$ctl->handle_cmdline( cmd => $cmd, verbose => $verbose );
+
+__END__
+
+=head1 NAME
+
+apachectlp - a more featureful Perl-based replacement for apachectl
+
+=head1 SYNOPSIS
+
+   apachectlp [-f conf_file] [-d server_root] [-b httpd_binary] [-v] -k start|stop|restart|ping
+
+=head1 DESCRIPTION
+
+C<apachectlp> uses L<Server::Control::Apache|Server::Control::Apache> to start,
+stop, restart or ping (show status of) an Apache httpd server.
+
+Features:
+
+=over
+
+=item *
+
+Checks server status both by looking at the pid file, and by contacting the
+server's port
+
+=item *
+
+Tails the error log when server fails to start
+
+=item *
+
+Detects and handles corrupt or out-of-date pid files
+
+=item *
+
+Uses sudo by default when using restricted (< 1024) port
+
+=back
+
+=head1 OPTIONS
+
+Required options: -k, and either -d or -f.
+
+ -b, --httpd-binary  Specify an httpd binary - defaults to the first httpd in user's PATH
+ -d                  Specify the server root - will determine from configuration file if given
+ -f                  Specify a configuration file - defaults to conf/httpd.conf under server root
+ -h, --help          Print help message
+ -k                  Specify command - start, stop, restart, or ping
+ -v, --verbose       Show verbose output
+ -c, --class         Specify a customized class to use instead of Server::Control::Apache
+
+L<Server::Control|Server::Control> uses these values for features and usually
+gets them by parsing the configuration file, but you may pass any of them if
+the parsing isn't working.
+
+ --bind-addr
+ --error-log
+ --port
+ --pid-file
+
+=head1 AUTHOR
+
+Jonathan Swartz
+
+=head1 SEE ALSO
+
+apachectl, httpd, L<Server::Control::Apache|Server::Control::Apache>
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright (C) 2007 Jonathan Swartz.
+
+This software is provided "as is" and without any express or implied
+warranties, including, without limitation, the implied warranties of
+merchantibility and fitness for a particular purpose.
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+=cut
