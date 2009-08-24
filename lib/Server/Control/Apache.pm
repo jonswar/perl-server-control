@@ -204,16 +204,6 @@ L<Server::Control/port> by parsing the conf file. However, if the parsing
 doesn't work or you wish to override certain values, you can pass them in
 manually.
 
-=head1 TODO
-
-=over
-
-=item *
-
-Add a convenient CLI, e.g. apachectlp
-
-=back
-
 =head1 AUTHOR
 
 Jonathan Swartz
