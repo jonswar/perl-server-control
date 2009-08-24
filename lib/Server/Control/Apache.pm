@@ -178,6 +178,9 @@ Server::Control::Apache is a subclass of Server::Control for Apache httpd
 processes. It has the same basic function as apachectl, only with a richer
 feature set.
 
+This module has an associated binary, apachectlp(1), which you may want to use
+instead.
+
 =head1 CONSTRUCTOR
 
 The constructor options are as described in L<Server::Control|Server::Control>,
