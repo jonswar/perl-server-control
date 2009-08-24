@@ -9,11 +9,10 @@ use warnings;
 
 extends 'Server::Control';
 
-has 'root_dir'      => ( is => 'ro', lazy_build => 1 );
 has 'conf_file'     => ( is => 'ro', lazy_build => 1 );
 has 'httpd_binary'  => ( is => 'ro', lazy_build => 1 );
 has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'port'          => ( is => 'ro', required   => 0, lazy_build => 1 );
+has 'root_dir'      => ( is => 'ro', lazy_build => 1 );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -97,13 +96,12 @@ sub _build_pid_file {
 sub _build_bind_addr {
     my $self = shift;
     if ( defined( my $listen = $self->parsed_config->{Listen} ) ) {
-        ( my $bind_addr = $listen ) =~ s/:.*$//;
-        return $bind_addr;
+        if ( my ($bind_addr) = ( $listen =~ /([^:]+):/ ) ) {
+            return $bind_addr;
+        }
     }
-    else {
-        $log->debugf("defaulting bind_addr to localhost") if $log->is_debug;
-        return 'localhost';
-    }
+    $log->debugf("defaulting bind_addr to localhost") if $log->is_debug;
+    return 'localhost';
 }
 
 sub _build_port {
@@ -222,7 +220,7 @@ Jonathan Swartz
 
 =head1 SEE ALSO
 
-L<Server::Control|Server::Control>
+L<apachectlp|apachectlp> L<Server::Control|Server::Control>
 
 =head1 COPYRIGHT & LICENSE
 

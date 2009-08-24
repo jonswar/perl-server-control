@@ -7,14 +7,14 @@ use strict;
 use warnings;
 
 sub create_ctl {
-    my $self = shift;
+    my ( $self, $port, $temp_dir ) = @_;
 
     return Server::Control::NetServer->new(
         net_server_class  => 'Net::Server::Fork',
         net_server_params => {
-            port     => $self->{port},
-            pid_file => $self->{temp_dir} . "/server.pid",
-            log_file => $self->{temp_dir} . "/server.log",
+            port     => $port,
+            pid_file => $temp_dir . "/server.pid",
+            log_file => $temp_dir . "/server.log",
             user     => geteuid(),
             group    => getegid()
         },

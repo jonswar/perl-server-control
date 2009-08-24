@@ -18,16 +18,14 @@ sub check_httpd_binary : Test(startup) {
 }
 
 sub create_ctl {
-    my $self = shift;
+    my ( $self, $port, $temp_dir ) = @_;
 
-    my $temp_dir = $self->{temp_dir};
-    my $port     = $self->{port};
     mkpath( "$temp_dir/logs", 0, 0775 );
     mkpath( "$temp_dir/conf", 0, 0775 );
     my $conf = "
         ServerName mysite.com
         ServerRoot $temp_dir
-        Listen     localhost:$port
+        Listen     $port
         PidFile    $temp_dir/logs/my-httpd.pid
         LockFile   $temp_dir/logs/accept.lock
         ErrorLog   $temp_dir/logs/my-error.log
@@ -36,7 +34,7 @@ sub create_ctl {
         MaxSpareServers 2
     ";
     write_file( "$temp_dir/conf/httpd.conf", $conf );
-    return Server::Control::Apache->new( root_dir => $self->{temp_dir} );
+    return Server::Control::Apache->new( root_dir => $temp_dir );
 }
 
 sub test_build_default : Test(5) {
@@ -46,7 +44,7 @@ sub test_build_default : Test(5) {
     my $temp_dir = $self->{temp_dir};
     is( $ctl->conf_file, "$temp_dir/conf/httpd.conf",
         "determined conf_file from server root" );
-    is( $ctl->bind_addr, "localhost",   "determined bind_addr from conf file" );
+    is( $ctl->bind_addr, "localhost",   "determined bind_addr from default" );
     is( $ctl->port,      $self->{port}, "determined port from conf file" );
     is( $ctl->pid_file, "$temp_dir/logs/my-httpd.pid",
         "determined pid_file from conf file" );
@@ -65,14 +63,14 @@ sub test_build_alternate : Test(5) {
     my $port = $self->{port} + 1;
     my $conf = "
         ServerRoot $temp_dir
-        Listen $port
+        Listen 1.2.3.4:$port
     ";
     my $conf_file = "$temp_dir/conf/httpd.conf";
     write_file( $conf_file, $conf );
     my $ctl = Server::Control::Apache->new( conf_file => $conf_file );
-    is( $ctl->root_dir,  $temp_dir,   "determined root_dir from conf file" );
-    is( $ctl->bind_addr, "localhost", "determined bind_addr from default" );
-    is( $ctl->port,      $port,       "determined port from conf file" );
+    is( $ctl->root_dir,  $temp_dir, "determined root_dir from conf file" );
+    is( $ctl->bind_addr, "1.2.3.4", "determined bind_addr from conf file" );
+    is( $ctl->port,      $port,     "determined port from conf file" );
     is( $ctl->pid_file, "$temp_dir/logs/httpd.pid",
         "determined pid_file from default" );
     like( $ctl->error_log, qr{$temp_dir/logs/error.log},

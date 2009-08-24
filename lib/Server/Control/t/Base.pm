@@ -1,6 +1,5 @@
 package Server::Control::t::Base;
 use base qw(Server::Control::Test::Class);
-use Capture::Tiny qw(capture);
 use File::Slurp;
 use File::Temp qw(tempdir);
 use Guard;
@@ -29,10 +28,10 @@ sub test_setup : Tests(setup) {
     # How to pick this w/o possibly conflicting...
     $self->{port} = 15432;
     $self->{temp_dir} =
-      tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 0 );
+      tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
     $self->{log} = Test::Log::Dispatch->new( min_level => 'info' );
     Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
-    $self->{ctl} = $self->create_ctl();
+    $self->{ctl} = $self->create_ctl( $self->{port}, $self->{temp_dir} );
     push( @ctls, $self->{ctl} );
 }
 

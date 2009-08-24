@@ -1,6 +1,5 @@
 package Server::Control::NetServer;
 use Carp;
-use Server::Control::Util qw(dp);
 use Moose;
 use strict;
 use warnings;
@@ -14,7 +13,6 @@ has 'net_server_class' => (
 );
 has 'net_server_params' =>
   ( is => 'ro', isa => 'HashRef', default => sub { {} } );
-has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
 
 __PACKAGE__->meta->make_immutable();
 

@@ -1,6 +1,5 @@
 package Server::Control::HTTPServerSimple;
 use Carp;
-use Server::Control::Util qw(dp);
 use Moose;
 use Moose::Meta::Class;
 use Moose::Util::TypeConstraints;
@@ -22,7 +21,6 @@ has 'server_class' => (
 has 'server' => ( is => 'ro', lazy_build => 1 );
 has 'net_server_params' =>
   ( is => 'ro', isa => 'HashRef', default => sub { {} } );
-has '+port' => ( required => 0, lazy => 1, builder => '_build_port' );
 
 __PACKAGE__->meta->make_immutable();
 
