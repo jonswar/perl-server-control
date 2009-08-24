@@ -23,6 +23,7 @@ requires 'File::Slurp'                 => '9999.13';
 requires 'File::Spec::Functions'       => 0;
 requires 'File::Temp'                  => 0;
 requires 'File::Which'                 => 0;
+requires 'Hash::MoreUtils'             => 0;
 requires 'IO::Socket'                  => 0;
 requires 'IPC::System::Simple'         => '1.18';
 requires 'List::MoreUtils'             => '0.13';
