@@ -11,7 +11,7 @@ use Time::HiRes qw(usleep);
 use strict;
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
