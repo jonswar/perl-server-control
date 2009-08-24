@@ -4,6 +4,8 @@ Revision history for Server-Control
 
 0.03  Aug 24, 2009
 
+- Add Hash::MoreUtils to dependencies
+
 0.02  Aug 24, 2009
 
 - Parse Apache config to determine server_root, port, bind_addr, error_log, and pid_file if not specified
