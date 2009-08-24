@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.02  Aug 21, 2009
+0.02  Aug 24, 2009
 
 - Parse Apache config to determine server_root, port, bind_addr, error_log, and pid_file if not specified
 - Add bin/apachectlp, a replacement for apachectl
