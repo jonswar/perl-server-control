@@ -34,4 +34,4 @@
 ^Makefile.old$
 ^blib
 ^MANIFEST.SKIP$
-^pm_to_blib
+
