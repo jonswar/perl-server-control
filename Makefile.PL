@@ -35,6 +35,8 @@ requires 'Time::HiRes'                 => 0;
 install_script 'bin/apachectlp';
 
 no_index directory => 'lib/Server/Control/t';
+no_index directory => 'lib/Server/Control/Test';
+no_index package => 'Server::Control::Util';
 
 license 'perl';
 
