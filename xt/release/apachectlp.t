@@ -7,7 +7,6 @@ use File::Temp qw(tempdir);
 use File::Which;
 use IPC::System::Simple qw(run);
 use Server::Control::t::Apache;
-use Server::Control::Util qw(dp);
 use strict;
 use warnings;
 
