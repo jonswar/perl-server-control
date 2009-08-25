@@ -1,6 +1,4 @@
 #!perl
-use Cwd qw(realpath);
-use File::Basename;
 use Test::More;
 use Capture::Tiny qw(tee);
 use File::Temp qw(tempdir);
@@ -22,14 +20,12 @@ my $ctl      = Server::Control::t::Apache->create_ctl( $port, $temp_dir );
 
 my $conf_file = $ctl->conf_file;
 
-my $root_dir = dirname(dirname(realpath($0)));
-
 sub try {
     my ( $cmd, $expected, $desc ) = @_;
 
     my ($output, $error) = tee {
-        my $cmd = "$root_dir/bin/apachectlp -f $conf_file -k $cmd";
-        run("$root_dir/bin/apachectlp -f $conf_file -k $cmd");
+        my $cmd = "bin/apachectlp -f $conf_file -k $cmd";
+        run($cmd);
     };
     like( $output, $expected, "$cmd $desc" );
 }
