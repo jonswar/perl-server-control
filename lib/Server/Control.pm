@@ -397,11 +397,11 @@ contacting the server's port)
 
 =item *
 
-Tails the error log when server fails to start
+Detects and handles corrupt or out-of-date pid files
 
 =item *
 
-Detects and handles corrupt or out-of-date pid files
+Tails the error log when server fails to start
 
 =item *
 
@@ -658,8 +658,7 @@ is listening (via lsof, fuser, etc.)
 
 =item *
 
-Possibly add pre- and post- start and stop augment hooks like
-L<MooseX::Control|MooseX::Control>
+Write a plugin to dynamically generate conf files
 
 =back
 
