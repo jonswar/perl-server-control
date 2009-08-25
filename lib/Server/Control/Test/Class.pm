@@ -34,7 +34,7 @@ sub runtests {
 }
 
 sub is_internal {
-    return $ENV{SERVER_CONTROL_INTERNAL_TESTS};
+    return $ENV{RELEASE_TESTING};
 }
 
 sub internal_only {
