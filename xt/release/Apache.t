@@ -1,3 +1,3 @@
 #!perl -w
 use Server::Control::t::Apache;
-Server::Control::t::Apache->runtests;
+Test::Class::runtests(Server::Control::t::Apache->new);
