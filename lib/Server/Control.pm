@@ -663,6 +663,12 @@ L<MooseX::Control|MooseX::Control>
 
 =back
 
+=head1 ACKNOWLEDGMENTS
+
+This module was developed for the Digital Media group of the Hearst
+Corporation, a diversified media company based in New York City.  Many thanks
+to Hearst management for agreeing to this open source release.
+
 =head1 AUTHOR
 
 Jonathan Swartz
