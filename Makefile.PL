@@ -38,6 +38,8 @@ no_index directory => 'lib/Server/Control/t';
 no_index directory => 'lib/Server/Control/Test';
 no_index package => 'Server::Control::Util';
 
+extra_tests;
+
 license 'perl';
 
 auto_install;
