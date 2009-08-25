@@ -1,3 +1,3 @@
 #!perl -w
 use Server::Control::t::HTTPServerSimple;
-Server::Control::t::HTTPServerSimple->runtests;
+Test::Class::runtests(Server::Control::t::HTTPServerSimple->new);

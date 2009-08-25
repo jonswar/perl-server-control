@@ -1,3 +1,3 @@
 #!perl -w
 use Server::Control::t::Sanity;
-Server::Control::t::Sanity->runtests;
+Test::Class::runtests(Server::Control::t::Sanity->new);
