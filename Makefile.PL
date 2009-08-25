@@ -32,6 +32,10 @@ requires 'Moose'                       => '0.66';
 requires 'Proc::ProcessTable'          => '0.42';
 requires 'Time::HiRes'                 => 0;
 
+install_script 'bin/apachectlp';
+
+no_index directory => 'lib/Server/Control/t';
+
 license 'perl';
 
 auto_install;
