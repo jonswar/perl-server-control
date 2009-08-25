@@ -5,6 +5,8 @@ Revision history for Server-Control
 0.03  Aug 25, 2009
 
 - Add Hash::MoreUtils to dependencies
+- Make Apache tests release-only, since they depend on httpd version, etc.
+- Remove some unnecessary internal files
 
 0.02  Aug 24, 2009
 
