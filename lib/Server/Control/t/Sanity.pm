@@ -1,5 +1,5 @@
 package Server::Control::t::Sanity;
-use base qw(Server::Control::Test::Class);
+use base qw(Test::Class);
 use Test::Most;
 use strict;
 use warnings;
