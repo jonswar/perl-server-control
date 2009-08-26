@@ -2,6 +2,7 @@
 use strict;
 use Server::Control::Apache;
 use Hash::MoreUtils qw(slice_def);
+use Pod::Usage;
 use Getopt::Long qw(GetOptions);
 my ( $help, $cmd, $verbose, %ctlopts );
 my $class = 'Server::Control::Apache';
@@ -78,9 +79,8 @@ Required options: -k, and either -d or -f.
  -v, --verbose       Show verbose output
  -c, --class         Specify a customized class to use instead of Server::Control::Apache
 
-L<Server::Control|Server::Control> needs the values below and usually gets them
-by parsing the configuration file, but you may pass any of them if the parsing
-isn't working.
+Server::Control needs the values below and usually gets them by parsing the
+configuration file, but you may pass any of them if the parsing isn't working.
 
  --bind-addr
  --error-log
