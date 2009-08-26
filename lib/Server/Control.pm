@@ -413,6 +413,10 @@ Tails the error log when server fails to start
 
 Uses sudo by default when using restricted (< 1024) port
 
+=item *
+
+With Unix::Lsof installed, reports what is listening to a port when it is busy
+
 =back
 
 =head1 AVAILABLE SUBCLASSES
@@ -656,11 +660,6 @@ L<MooseX::Control|MooseX::Control>
 =head1 TO DO
 
 =over
-
-=item *
-
-When a port is being listened to unexpectedly, attempt to report which process
-is listening (via lsof, fuser, etc.)
 
 =item *
 
