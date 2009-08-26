@@ -1,13 +1,13 @@
 package Server::Control;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
-use IO::Socket;
 use IPC::System::Simple qw();
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Moose;
 use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
+use Server::Control::Util qw(is_port_active something_is_listening_msg);
 use strict;
 use warnings;
 
@@ -16,16 +16,16 @@ our $VERSION = '0.04';
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr'           => ( is => 'ro', lazy_build => 1 );
-has 'description'         => ( is => 'ro', lazy_build => 1 );
-has 'error_log'           => ( is => 'ro', lazy_build => 1 );
-has 'log_dir'             => ( is => 'ro', lazy_build => 1 );
-has 'pid_file'            => ( is => 'ro', lazy_build => 1 );
-has 'port'                => ( is => 'ro', lazy_build => 1 );
-has 'root_dir'            => ( is => 'ro' );
-has 'use_sudo'            => ( is => 'ro', lazy_build => 1 );
-has 'wait_for_start_secs' => ( is => 'ro', default    => 10 );
-has 'wait_for_stop_secs'  => ( is => 'ro', default    => 10 );
+has 'bind_addr'            => ( is => 'ro', lazy_build => 1 );
+has 'description'          => ( is => 'ro', lazy_build => 1 );
+has 'error_log'            => ( is => 'ro', lazy_build => 1 );
+has 'log_dir'              => ( is => 'ro', lazy_build => 1 );
+has 'pid_file'             => ( is => 'ro', lazy_build => 1 );
+has 'poll_for_status_secs' => ( is => 'ro', default    => 0.2 );
+has 'port'                 => ( is => 'ro', lazy_build => 1 );
+has 'root_dir'             => ( is => 'ro' );
+has 'use_sudo'             => ( is => 'ro', lazy_build => 1 );
+has 'wait_for_status_secs' => ( is => 'ro', default    => 10 );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -46,7 +46,14 @@ sub _build_bind_addr {
 
 sub _build_description {
     my $self = shift;
-    return "server '" . ref($self) . "'";
+    my $name;
+    if ( my $root_dir = defined( $self->root_dir ) ) {
+        $name = basename($root_dir);
+    }
+    else {
+        ( $name = ref($self) ) =~ s/^Server::Control:://;
+    }
+    return "server '$name'";
 }
 
 sub _build_error_log {
@@ -117,8 +124,10 @@ sub start {
     }
     elsif ( $self->is_listening() ) {
         $log->warnf(
-            "cannot start %s - pid file '%s' does not exist, but something is listening to port %d",
-            $self->description(), $self->pid_file(), $self->port(),
+            "cannot start %s - pid file '%s' does not exist, but %s",
+            $self->description(),
+            $self->pid_file(),
+            something_is_listening_msg( $self->port, $self->bind_addr )
         );
         return;
     }
@@ -133,24 +142,13 @@ sub start {
         return;
     }
 
-    $log->infof("waiting for server start");
-    my $wait_until = time() + $self->wait_for_start_secs();
-    while ( time < $wait_until ) {
-        if ( $self->status == ACTIVE ) {
-            ( my $status = $self->status_as_string() ) =~
-              s/running/now running/;
-            $log->info($status);
-            return;
-        }
-        usleep(100000);
+    if ( $self->_wait_for_status( ACTIVE, 'start' ) ) {
+        ( my $status = $self->status_as_string() ) =~ s/running/now running/;
+        $log->info($status);
     }
-
-    $log->warnf(
-        "after %d secs, %s",
-        $self->wait_for_start_secs(),
-        $self->status_as_string()
-    );
-    $self->_report_error_log_output($error_size_start);
+    else {
+        $self->_report_error_log_output($error_size_start);
+    }
 }
 
 sub stop {
@@ -181,21 +179,9 @@ sub stop {
         return;
     }
 
-    $log->infof("waiting for server stop");
-    my $wait_until = time() + $self->wait_for_stop_secs();
-    while ( time < $wait_until ) {
-        if ( $self->status == INACTIVE ) {
-            $log->infof( "%s has stopped", $self->description() );
-            return;
-        }
-        usleep(100000);
+    if ( $self->_wait_for_status( INACTIVE, 'stop' ) ) {
+        $log->infof( "%s has stopped", $self->description() );
     }
-
-    $log->warnf(
-        "after %d secs, %s",
-        $self->wait_for_stop_secs(),
-        $self->status_as_string()
-    );
 }
 
 sub restart {
@@ -293,10 +279,7 @@ sub is_running {
 sub is_listening {
     my ($self) = @_;
 
-    my $is_listening = IO::Socket::INET->new(
-        PeerAddr => $self->bind_addr(),
-        PeerPort => $self->port()
-    ) ? 1 : 0;
+    my $is_listening = is_port_active( $self->port(), $self->bind_addr() );
     if ( $log->is_debug ) {
         $log->debugf(
             "%s is listening to %s:%d",
@@ -329,6 +312,29 @@ sub _start_error_log_watch {
     my ($self) = @_;
 
     return defined( $self->error_log ) ? ( -s $self->error_log() || 0 ) : 0;
+}
+
+sub _wait_for_status {
+    my ( $self, $status, $action ) = @_;
+
+    $log->infof("waiting for server $action");
+    my $wait_until = time() + $self->wait_for_status_secs();
+    my $poll_delay = $self->poll_for_status_secs() * 1_000_000;
+    while ( time() < $wait_until ) {
+        if ( $self->status == $status ) {
+            return 1;
+        }
+        else {
+            usleep($poll_delay);
+        }
+    }
+
+    $log->warnf(
+        "after %d secs, %s",
+        $self->wait_for_status_secs(),
+        $self->status_as_string()
+    );
+    return 0;
 }
 
 sub _report_error_log_output {
@@ -467,6 +473,11 @@ otherwise undef.
 
 Path to pid file. Will throw an error if this cannot be determined.
 
+=item poll_for_status_secs
+
+Number of seconds (can be fractional) between status checks when waiting for
+server start or stop.  Defaults to 0.2.
+
 =item port
 
 At least one port that server will listen to, so that C<Server::Control> can
@@ -483,15 +494,10 @@ defaults of other options like I<log_dir>.
 Whether to use 'sudo' when attempting to start and stop server. Defaults to
 true if I<port> < 1024, false otherwise.
 
-=item wait_for_start_secs
+=item wait_for_status_secs
 
-Number of seconds to wait for server start before reporting error. Defaults to
-10.
-
-=item wait_for_stop_secs
-
-Number of seconds to wait for server stop before reporting error. Defaults to
-10.
+Number of seconds to wait for server start or stop before reporting error.
+Defaults to 10.
 
 =back
 
