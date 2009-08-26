@@ -29,8 +29,10 @@ requires 'IPC::System::Simple'         => '1.18';
 requires 'List::MoreUtils'             => '0.13';
 requires 'Log::Any::Adapter::Dispatch' => '0.03';
 requires 'Moose'                       => '0.66';
+requires 'Pod::Usage'                  => 0;
 requires 'Proc::ProcessTable'          => '0.42';
 requires 'Time::HiRes'                 => 0;
+requires 'Unix::Lsof'                  => '0.0.9';
 
 install_script 'bin/apachectlp';
 
