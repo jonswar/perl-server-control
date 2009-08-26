@@ -1,6 +1,5 @@
 package Server::Control::Util;
 use IO::Socket;
-use Unix::Lsof;
 use Proc::Killfam;
 use Proc::ProcessTable;
 use strict;
@@ -14,6 +13,9 @@ our @EXPORT_OK = qw(
   something_is_listening_msg
   kill_my_children
 );
+
+eval { require Unix::Lsof };
+my $have_lsof = $Unix::Lsof::VERSION;
 
 sub trim {
     my ($str) = @_;
@@ -40,8 +42,9 @@ sub is_port_active {
 sub process_listening_to_port {
     my ( $port, $bind_addr ) = @_;
 
+    return undef unless $have_lsof;
     $bind_addr = defined($bind_addr) ? "(?:$bind_addr|\\*)" : '.*';
-    if ( my $lr = eval { lsof( "-P", "-i", "TCP" ) } ) {
+    if ( my $lr = eval { Unix::Lsof::lsof( "-P", "-i", "TCP" ) } ) {
         if (
             my ($row) =
             grep { $_->[1] =~ /^$bind_addr:$port$/ && $_->[2] =~ /^IP/ }
