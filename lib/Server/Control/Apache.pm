@@ -1,5 +1,6 @@
 package Server::Control::Apache;
 use Apache::ConfigParser;
+use Cwd qw(realpath);
 use File::Spec::Functions qw(catdir catfile);
 use File::Which qw(which);
 use Log::Any qw($log);
@@ -24,8 +25,10 @@ sub BUILD {
     #
     if ( my $conf_file = $self->{conf_file} ) {
         die "no such conf file '$conf_file'" unless -f $conf_file;
+        $self->{conf_file} = realpath( $self->{conf_file} );
     }
     elsif ( defined( $self->{root_dir} ) ) {
+        $self->{root_dir} = realpath( $self->{root_dir} );
         my $default_conf_file =
           catfile( $self->{root_dir}, "conf", "httpd.conf" );
         if ( -f $default_conf_file ) {
