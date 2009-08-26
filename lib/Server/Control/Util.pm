@@ -80,14 +80,12 @@ sub something_is_listening_msg {
 # with apache and other servers that end up with ppid=1
 #
 sub kill_my_children {
-    my $self = shift;
-
     my $pt = new Proc::ProcessTable;
     if ( my @child_pids = Proc::Killfam::get_pids( $pt->table, $$ ) ) {
         if ( $ENV{TEST_VERBOSE} ) {
             printf STDERR "sending TERM to %s\n", join( ", ", @child_pids );
         }
-        Proc::Killfam::killfam( 15, \@child_pids );
+        Proc::Killfam::killfam( 15, @child_pids );
     }
 }
 
