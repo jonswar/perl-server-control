@@ -6,8 +6,9 @@ use Guard;
 use HTTP::Server::Simple;
 use Log::Any;
 use Net::Server;
-use Proc::Killfam;
 use Proc::ProcessTable;
+use Server::Control::Util
+  qw(kill_my_children is_port_active something_is_listening_msg);
 use Test::Log::Dispatch;
 use Test::Most;
 use strict;
@@ -25,8 +26,14 @@ sub test_startup : Tests(startup) {
 sub test_setup : Tests(setup) {
     my $self = shift;
 
-    # How to pick this w/o possibly conflicting...
+    # How to pick this w/o possibly conflicting with a port already in use?
+    # Might not want to pick from a bunch of ports...if we start
+    # accidentally leaving test servers running, it'll just compound the problem
+    #
     $self->{port} = 15432;
+    if ( is_port_active( $self->{port}, 'localhost' ) ) {
+        die something_is_listening_msg( $self->{port}, 'localhost' );
+    }
     $self->{temp_dir} =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
     $self->{log} = Test::Log::Dispatch->new( min_level => 'info' );
@@ -66,6 +73,7 @@ sub test_port_busy : Tests(3) {
     my $port = $self->{port};
 
     # Fork and start another server listening on same port
+    local $SIG{CHLD} = 'DEFAULT';
     my $child = fork();
     if ( !$child ) {
         Net::Server->run( port => $port, log_file => $ctl->error_log );
@@ -77,7 +85,7 @@ sub test_port_busy : Tests(3) {
     ok( $ctl->is_listening(), "listening" );
     $ctl->start();
     $log->contains_ok(
-        qr/pid file '.*' does not exist, but something is listening to port $port/
+        qr/pid file '.*' does not exist, but something.*is listening to localhost:$port/
     );
     kill 15, $child;
 }
@@ -117,22 +125,6 @@ sub test_corrupt_pid_file : Test(3) {
     $log->contains_ok(qr/deleting bogus pid file/);
     ok( $ctl->is_running(), "is running" );
     $ctl->stop();
-}
-
-# NOTE: Doesn't work with apache and other servers that end up with ppid=1
-sub kill_my_children {
-    my $self = shift;
-
-    foreach my $signal ( 15, 9 ) {
-        my $pt = new Proc::ProcessTable;
-        if ( my @child_pids = Proc::Killfam::get_pids( $pt->table, $$ ) ) {
-            explain("sending signal $signal to "
-                  . join( ", ", @child_pids )
-                  . "\n" );
-            Proc::Killfam::killfam( $signal, \@child_pids );
-            sleep(1);
-        }
-    }
 }
 
 sub cleanup {
