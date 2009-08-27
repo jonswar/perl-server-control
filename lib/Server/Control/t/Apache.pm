@@ -1,5 +1,6 @@
 package Server::Control::t::Apache;
 use base qw(Server::Control::t::Base);
+use Cwd qw(realpath);
 use File::Path;
 use File::Slurp qw(write_file);
 use File::Which;
@@ -42,11 +43,11 @@ sub test_build_default : Test(5) {
 
     my $ctl      = $self->{ctl};
     my $temp_dir = $self->{temp_dir};
-    is( $ctl->conf_file, "$temp_dir/conf/httpd.conf",
+    is_realpath( $ctl->conf_file, "$temp_dir/conf/httpd.conf",
         "determined conf_file from server root" );
     is( $ctl->bind_addr, "localhost",   "determined bind_addr from default" );
     is( $ctl->port,      $self->{port}, "determined port from conf file" );
-    is( $ctl->pid_file, "$temp_dir/logs/my-httpd.pid",
+    is_realpath( $ctl->pid_file, "$temp_dir/logs/my-httpd.pid",
         "determined pid_file from conf file" );
     like(
         $ctl->error_log,
@@ -88,6 +89,12 @@ sub test_missing_params : Test(1) {
         )->conf_file();
     }
     qr/no conf_file or root_dir specified/;
+}
+
+sub is_realpath {
+    my ( $path1, $path2, $name ) = @_;
+
+    is( realpath($path1), realpath($path2), $name );
 }
 
 1;
