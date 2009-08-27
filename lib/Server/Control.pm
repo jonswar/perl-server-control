@@ -1,4 +1,5 @@
 package Server::Control;
+use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
 use IPC::System::Simple qw();
