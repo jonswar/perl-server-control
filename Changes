@@ -6,6 +6,7 @@ Revision history for Server-Control
 
 - Use Unix::Lsof to try and determine who is listening to a port, report this in diagnostics
 - Add Pod::Usage to dependencies
+- Fix handling of relative paths given to apachectlp
 
 0.03  Aug 25, 2009
 

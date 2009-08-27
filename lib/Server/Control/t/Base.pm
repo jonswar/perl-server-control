@@ -73,7 +73,6 @@ sub test_port_busy : Tests(3) {
     my $port = $self->{port};
 
     # Fork and start another server listening on same port
-    local $SIG{CHLD} = 'DEFAULT';
     my $child = fork();
     if ( !$child ) {
         Net::Server->run( port => $port, log_file => $ctl->error_log );
