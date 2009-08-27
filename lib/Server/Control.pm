@@ -12,7 +12,7 @@ use Server::Control::Util qw(is_port_active something_is_listening_msg);
 use strict;
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
