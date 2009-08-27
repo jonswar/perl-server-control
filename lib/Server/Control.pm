@@ -600,9 +600,12 @@ Returns status as a human-readable string, e.g. "server 'foo' is not running"
 
 =head1 LOGGING
 
-C<Server::Control> uses L<Log::Any|Log::Any> for logging, so you have control
-over where logs will be sent, if anywhere. The exception is L</handle_cmdline>,
-which will tell C<Log::Any> to send logs to STDOUT.
+C<Server::Control> uses L<Log::Any|Log::Any> for logging events. See
+L<Log::Any|Log::Any> documentation for how to control where logs get sent, if
+anywhere.
+
+The exception is L</handle_cmdline>, which will tell C<Log::Any> to send logs
+to STDOUT.
 
 =head1 IMPLEMENTING SUBCLASSES
 
