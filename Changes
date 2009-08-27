@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.04  Aug 25, 2009
+0.04  Aug 26, 2009
 
 - Use Unix::Lsof to try and determine who is listening to a port, report this in diagnostics
 - Add Pod::Usage to dependencies
