@@ -6,6 +6,7 @@ use Guard;
 use HTTP::Server::Simple;
 use Log::Any;
 use Net::Server;
+use POSIX qw(geteuid getegid);
 use Proc::ProcessTable;
 use Server::Control::Util
   qw(kill_my_children is_port_active something_is_listening_msg);
@@ -15,6 +16,24 @@ use strict;
 use warnings;
 
 our @ctls;
+
+# Moved up from Server::Control::t::NetServer::create_ctl because it is used
+# in test_port_busy too
+sub create_net_server_ctl {
+    my ( $self, $port, $temp_dir ) = @_;
+
+    require Server::Control::NetServer;
+    return Server::Control::NetServer->new(
+        net_server_class  => 'Net::Server::Fork',
+        net_server_params => {
+            port     => $port,
+            pid_file => $temp_dir . "/server.pid",
+            log_file => $temp_dir . "/server.log",
+            user     => geteuid(),
+            group    => getegid()
+        },
+    );
+}
 
 sub test_startup : Tests(startup) {
     my $self = shift;
@@ -72,13 +91,11 @@ sub test_port_busy : Tests(3) {
     my $log  = $self->{log};
     my $port = $self->{port};
 
-    # Fork and start another server listening on same port
-    my $child = fork();
-    if ( !$child ) {
-        Net::Server->run( port => $port, log_file => $ctl->error_log );
-        exit;
-    }
-    sleep(1);
+    # Start another server listening on same port
+    my $temp_dir2 =
+      tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
+    my $ctl2 = $self->create_net_server_ctl( $port, $temp_dir2 );
+    $ctl2->start();
 
     ok( !$ctl->is_running(),  "not running" );
     ok( $ctl->is_listening(), "listening" );
@@ -86,7 +103,8 @@ sub test_port_busy : Tests(3) {
     $log->contains_ok(
         qr/pid file '.*' does not exist, but something.*is listening to localhost:$port/
     );
-    kill 15, $child;
+
+    $ctl2->stop();
 }
 
 sub test_wrong_port : Tests(7) {

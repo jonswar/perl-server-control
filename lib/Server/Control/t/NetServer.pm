@@ -9,16 +9,7 @@ use warnings;
 sub create_ctl {
     my ( $self, $port, $temp_dir ) = @_;
 
-    return Server::Control::NetServer->new(
-        net_server_class  => 'Net::Server::Fork',
-        net_server_params => {
-            port     => $port,
-            pid_file => $temp_dir . "/server.pid",
-            log_file => $temp_dir . "/server.log",
-            user     => geteuid(),
-            group    => getegid()
-        },
-    );
+    return $self->create_net_server_ctl( $port, $temp_dir );
 }
 
 sub test_missing_params : Test(2) {
