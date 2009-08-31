@@ -5,7 +5,7 @@ abstract 'Flexible apachectl style control for servers';
 all_from 'lib/Server/Control.pm';
 author 'Jonathan Swartz <swartz@pobox.com>';
 
-perl_version '5.008';
+perl_version '5.006';
 
 build_requires 'Capture::Tiny'        => 0;
 build_requires 'File::Path'           => 0;
@@ -13,6 +13,7 @@ build_requires 'Getopt::Long'         => 0;
 build_requires 'Guard'                => 0.5;
 build_requires 'HTTP::Server::Simple' => 0.28;
 build_requires 'Net::Server'          => 0;
+build_requires 'POSIX'                => 0;
 build_requires 'Test::Class'          => 0;
 build_requires 'Test::Log::Dispatch'  => 0;
 build_requires 'Test::Most'           => 0;
