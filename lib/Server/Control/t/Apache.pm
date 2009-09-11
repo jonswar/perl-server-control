@@ -1,6 +1,7 @@
 package Server::Control::t::Apache;
 use base qw(Server::Control::t::Base);
 use Cwd qw(realpath);
+use File::Basename;
 use File::Path;
 use File::Slurp qw(write_file);
 use File::Which;
@@ -38,7 +39,7 @@ sub create_ctl {
     return Server::Control::Apache->new( root_dir => $temp_dir );
 }
 
-sub test_build_default : Test(5) {
+sub test_build_default : Test(6) {
     my $self = shift;
 
     my $ctl      = $self->{ctl};
@@ -47,6 +48,11 @@ sub test_build_default : Test(5) {
         "determined conf_file from server root" );
     is( $ctl->bind_addr, "localhost",   "determined bind_addr from default" );
     is( $ctl->port,      $self->{port}, "determined port from conf file" );
+    is(
+        $ctl->description,
+        sprintf( "server '%s'", basename($temp_dir) ),
+        "determine description from server root"
+    );
     is_realpath( $ctl->pid_file, "$temp_dir/logs/my-httpd.pid",
         "determined pid_file from conf file" );
     like(

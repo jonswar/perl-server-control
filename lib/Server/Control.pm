@@ -48,7 +48,7 @@ sub _build_bind_addr {
 sub _build_description {
     my $self = shift;
     my $name;
-    if ( my $root_dir = defined( $self->root_dir ) ) {
+    if ( defined( my $root_dir = $self->root_dir ) ) {
         $name = basename($root_dir);
     }
     else {
