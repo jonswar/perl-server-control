@@ -17,10 +17,11 @@ GetOptions(
     'k=s'            => \$cmd,
     'v|verbose'      => \$verbose,
 
-    'bind-addr' => \$ctlopts{bind_addr},
-    'error-log' => \$ctlopts{error_log},
-    'port'      => \$ctlopts{port},
-    'pid_file'  => \$ctlopts{pid_file},
+    'bind-addr=s' => \$ctlopts{bind_addr},
+    'error-log=s' => \$ctlopts{error_log},
+    'name=s'      => \$ctlopts{name},
+    'port=s'      => \$ctlopts{port},
+    'pid-file=s'  => \$ctlopts{pid_file},
 ) or pod2usage(2);
 pod2usage(1) if $help;
 pod2usage( msg => "must specify -k", verbose => 1 ) if !$cmd;
@@ -85,6 +86,7 @@ Server::Control needs the values below and usually gets them by parsing the
 configuration file, but you may pass any of them if the parsing isn't working.
 
  --bind-addr
+ --name
  --error-log
  --port
  --pid-file
