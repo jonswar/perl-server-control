@@ -2,6 +2,8 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
+0.07  Sep 11, 2009
+
 0.06  Sep 11, 2009
 
 - Fix -d in apachectlp and add more specific usage errors
