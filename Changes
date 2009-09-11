@@ -4,6 +4,9 @@ Revision history for Server-Control
 
 0.06  Aug 31, 2009
 
+- Fix -d in apachectlp and add more specific usage errors
+- Remove default of ARGV[0] from handle_cmdline
+
 0.05  Aug 31, 2009
 
 - Fix test_port_busy test to be more robust in killing temp server
