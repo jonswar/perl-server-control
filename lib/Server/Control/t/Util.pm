@@ -16,12 +16,14 @@ sub test_startup : Tests(startup) {
     $self->{stop_guard} = guard( sub { cleanup() if $$ == $parent_pid } );
 }
 
-sub test_listening : Test(4) {
+sub test_listening : Test(5) {
     my $port      = 15432;
     my $bind_addr = 'localhost';
 
     die "port $port active - cannot run test"
       if is_port_active( $port, $bind_addr );
+
+    use_ok('Unix::Lsof');
 
     my $temp_dir =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
