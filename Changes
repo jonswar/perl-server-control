@@ -2,6 +2,8 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
+0.08  Sep 11, 2009
+
 0.07  Sep 11, 2009
 
 - Fix apachectlp --bind-addr, --error-log, etc options to actually take values
