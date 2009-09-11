@@ -4,6 +4,8 @@ Revision history for Server-Control
 
 0.07  Sep 11, 2009
 
+- Allow name to be overriden rather than description, and fix bug with default name
+
 0.06  Sep 11, 2009
 
 - Fix -d in apachectlp and add more specific usage errors
