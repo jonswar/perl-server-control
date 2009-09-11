@@ -4,6 +4,7 @@ Revision history for Server-Control
 
 0.07  Sep 11, 2009
 
+- Fix apachectlp --bind-addr, --error-log, etc options to actually take values
 - Allow name to be overriden rather than description, and fix bug with default name
 
 0.06  Sep 11, 2009
