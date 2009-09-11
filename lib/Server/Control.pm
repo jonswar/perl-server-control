@@ -89,10 +89,7 @@ sub _build_use_sudo {
 sub handle_cmdline {
     my ( $self, %params ) = @_;
 
-    my $cmd =
-         $params{cmd}
-      || $ARGV[0]
-      || die "no cmd passed and ARGV[0] is empty";
+    my $cmd = $params{cmd} || die "no cmd passed";
     my $verbose = $params{verbose};
 
     my $dispatcher = Log::Dispatch->new();
@@ -111,7 +108,8 @@ sub handle_cmdline {
         $self->$cmd();
     }
     else {
-        die sprintf( "usage: %s [%s]", $0, join( "|", @valid_commands ) );
+        die sprintf( "bad command '%s': must be one of %s",
+            $cmd, join( ", ", map { "'$_'" } @valid_commands ) );
     }
 }
 
@@ -538,12 +536,12 @@ Takes the following key/value parameters:
 =item *
 
 I<cmd> - one of start, stop, restart, or ping. It will be called on the
-Server::Control object. An appropriate usage error will be thrown for a bad
-command. If I<cmd> is not specified, it will be taken from $ARGV[0].
+Server::Control object. Required. An appropriate usage error will be thrown for
+a bad or missing command.
 
 =item *
 
-I<$verbose> - a boolean indicating whether the log level will be set to 'debug'
+I<verbose> - a boolean indicating whether the log level will be set to 'debug'
 or 'info'. Would typically come from a -v or --verbose switch. Default false.
 
 =back
