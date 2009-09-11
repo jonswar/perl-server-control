@@ -17,11 +17,12 @@ our $VERSION = '0.07';
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr'            => ( is => 'ro', lazy_build => 1 );
-has 'description'          => ( is => 'ro', lazy_build => 1 );
-has 'error_log'            => ( is => 'ro', lazy_build => 1 );
-has 'log_dir'              => ( is => 'ro', lazy_build => 1 );
-has 'pid_file'             => ( is => 'ro', lazy_build => 1 );
+has 'bind_addr'   => ( is => 'ro', lazy_build => 1 );
+has 'description' => ( is => 'ro', lazy_build => 1, init_arg => undef );
+has 'error_log'   => ( is => 'ro', lazy_build => 1 );
+has 'log_dir'     => ( is => 'ro', lazy_build => 1 );
+has 'name'        => ( is => 'ro', lazy_build => 1 );
+has 'pid_file'    => ( is => 'ro', lazy_build => 1 );
 has 'poll_for_status_secs' => ( is => 'ro', default    => 0.2 );
 has 'port'                 => ( is => 'ro', lazy_build => 1 );
 has 'root_dir'             => ( is => 'ro' );
@@ -47,13 +48,7 @@ sub _build_bind_addr {
 
 sub _build_description {
     my $self = shift;
-    my $name;
-    if ( defined( my $root_dir = $self->root_dir ) ) {
-        $name = basename($root_dir);
-    }
-    else {
-        ( $name = ref($self) ) =~ s/^Server::Control:://;
-    }
+    my $name = $self->name;
     return "server '$name'";
 }
 
@@ -67,6 +62,18 @@ sub _build_log_dir {
     my $self = shift;
     return
       defined( $self->root_dir ) ? catdir( $self->root_dir, "logs" ) : undef;
+}
+
+sub _build_name {
+    my $self = shift;
+    my $name;
+    if ( defined( my $root_dir = $self->root_dir ) ) {
+        $name = basename($root_dir);
+    }
+    else {
+        ( $name = ref($self) ) =~ s/^Server::Control:://;
+    }
+    return $name;
 }
 
 sub _build_pid_file {
@@ -456,11 +463,6 @@ of these from the Apache conf file.
 At least one address that the server binds to, so that C<Server::Control> can
 check it on start/stop. Defaults to C<localhost>. See also L</port>.
 
-=item description
-
-Description of the server to be used in output and logs. A generic default will
-be chosen if none is provided.
-
 =item error_log
 
 Location of error log. Defaults to I<log_dir>/error_log if I<log_dir> is
@@ -471,6 +473,11 @@ attempts to show recent messages in the error log.
 
 Location of logs. Defaults to I<root_dir>/logs if I<root_dir> is defined,
 otherwise undef.
+
+=item name
+
+Name of the server to be used in output and logs. A generic default will be
+chosen if none is provided, based on either L</root_dir> or the classname.
 
 =item pid_file
 

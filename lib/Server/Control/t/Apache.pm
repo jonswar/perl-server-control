@@ -62,7 +62,7 @@ sub test_build_default : Test(6) {
     );
 }
 
-sub test_build_alternate : Test(5) {
+sub test_build_alternate : Test(6) {
     my $self = shift;
 
     my $temp_dir = $self->{temp_dir} . "/alternate";
@@ -74,12 +74,15 @@ sub test_build_alternate : Test(5) {
     ";
     my $conf_file = "$temp_dir/conf/httpd.conf";
     write_file( $conf_file, $conf );
-    my $ctl = Server::Control::Apache->new( conf_file => $conf_file );
+    my $ctl =
+      Server::Control::Apache->new( conf_file => $conf_file, name => 'foo' );
     is( $ctl->root_dir,  $temp_dir, "determined root_dir from conf file" );
     is( $ctl->bind_addr, "1.2.3.4", "determined bind_addr from conf file" );
     is( $ctl->port,      $port,     "determined port from conf file" );
     is( $ctl->pid_file, "$temp_dir/logs/httpd.pid",
         "determined pid_file from default" );
+    is( $ctl->description, "server 'foo'",
+        "determined description from argument" );
     like( $ctl->error_log, qr{$temp_dir/logs/error.log},
         "determined error_log from default" );
 }
