@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.06  Aug 31, 2009
+0.06  Sep 11, 2009
 
 - Fix -d in apachectlp and add more specific usage errors
 - Remove default of ARGV[0] from handle_cmdline
