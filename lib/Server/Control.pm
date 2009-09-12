@@ -17,17 +17,17 @@ our $VERSION = '0.08';
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr'   => ( is => 'ro', lazy_build => 1 );
+has 'bind_addr' => ( is => 'ro', lazy_build => 1 );
 has 'description' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'error_log'   => ( is => 'ro', lazy_build => 1 );
-has 'log_dir'     => ( is => 'ro', lazy_build => 1 );
-has 'name'        => ( is => 'ro', lazy_build => 1 );
-has 'pid_file'    => ( is => 'ro', lazy_build => 1 );
-has 'poll_for_status_secs' => ( is => 'ro', default    => 0.2 );
+has 'error_log'            => ( is => 'ro' );
+has 'log_dir'              => ( is => 'ro', lazy_build => 1 );
+has 'name'                 => ( is => 'ro', lazy_build => 1 );
+has 'pid_file'             => ( is => 'ro', lazy_build => 1 );
+has 'poll_for_status_secs' => ( is => 'ro', default => 0.2 );
 has 'port'                 => ( is => 'ro', lazy_build => 1 );
 has 'root_dir'             => ( is => 'ro' );
 has 'use_sudo'             => ( is => 'ro', lazy_build => 1 );
-has 'wait_for_status_secs' => ( is => 'ro', default    => 10 );
+has 'wait_for_status_secs' => ( is => 'ro', default => 10 );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -42,6 +42,21 @@ use constant {
 # ATTRIBUTE BUILDERS
 #
 
+sub BUILD {
+    my ( $self, $params ) = @_;
+
+    # Assign default error_log, but undef it if not readable
+    #
+    if ( !defined( $self->{error_log} ) && defined( $self->{log_dir} ) ) {
+        $self->{error_log} = catdir( $self->log_dir, "error_log" );
+    }
+    if ( defined( $self->{error_log} ) && !-r $self->{error_log} ) {
+        $log->debugf( "cannot read error_log path '%s', not using",
+            $self->{error_log} );
+        undef $self->{error_log};
+    }
+}
+
 sub _build_bind_addr {
     return "localhost";
 }
@@ -50,12 +65,6 @@ sub _build_description {
     my $self = shift;
     my $name = $self->name;
     return "server '$name'";
-}
-
-sub _build_error_log {
-    my $self = shift;
-    return
-      defined( $self->log_dir ) ? catdir( $self->log_dir, "error_log" ) : undef;
 }
 
 sub _build_log_dir {
