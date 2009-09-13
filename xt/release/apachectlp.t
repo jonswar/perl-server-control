@@ -12,7 +12,7 @@ use warnings;
 if ( !scalar( which('httpd') ) ) {
     plan( skip_all => 'no httpd in PATH' );
 }
-plan( tests => 10 );
+plan( tests => 11 );
 
 # How to pick this w/o possibly conflicting...
 my $port     = 15432;
@@ -64,10 +64,11 @@ eval {
     try( "-d $temp_dir -k stop",  qr/stopped/,     'when running' );
     try( "-f $conf_file -k ping", qr/not running/, 'when not running' );
 
-    try_error( "",         qr/must specify -k.*Usage:/s );
+    try_error( "-f $conf_file",         qr/must specify -k.*Usage:/s );
     try_error( "-k start", qr/must specify -d or -f.*Usage:/s );
     try_error( "-k bleah -f $conf_file",
         qr/bad command 'bleah': must be one of/s );
+    try_error( "-k ping -f $conf_file --bad-option", qr/unrecognized options: --bad-option/);
 };
 my $error = $@;
 cleanup();

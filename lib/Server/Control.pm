@@ -2,10 +2,13 @@ package Server::Control;
 use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
+use Getopt::Long qw(GetOptions);
+use Hash::MoreUtils qw(slice_def);
 use IPC::System::Simple qw();
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Moose;
+use Pod::Usage;
 use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
 use Server::Control::Util qw(is_port_active something_is_listening_msg);
@@ -17,17 +20,17 @@ our $VERSION = '0.08';
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr' => ( is => 'ro', lazy_build => 1 );
+has 'bind_addr'   => ( is => 'ro', lazy_build => 1 );
 has 'description' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'error_log'            => ( is => 'ro' );
-has 'log_dir'              => ( is => 'ro', lazy_build => 1 );
-has 'name'                 => ( is => 'ro', lazy_build => 1 );
-has 'pid_file'             => ( is => 'ro', lazy_build => 1 );
-has 'poll_for_status_secs' => ( is => 'ro', default => 0.2 );
+has 'error_log'   => ( is => 'ro', lazy_build => 1 );
+has 'log_dir'     => ( is => 'ro', lazy_build => 1 );
+has 'name'        => ( is => 'ro', lazy_build => 1 );
+has 'pid_file'    => ( is => 'ro', lazy_build => 1 );
+has 'poll_for_status_secs' => ( is => 'ro', default    => 0.2 );
 has 'port'                 => ( is => 'ro', lazy_build => 1 );
 has 'root_dir'             => ( is => 'ro' );
 has 'use_sudo'             => ( is => 'ro', lazy_build => 1 );
-has 'wait_for_status_secs' => ( is => 'ro', default => 10 );
+has 'wait_for_status_secs' => ( is => 'ro', default    => 10 );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -42,23 +45,14 @@ use constant {
 # ATTRIBUTE BUILDERS
 #
 
-sub BUILD {
-    my ( $self, $params ) = @_;
-
-    # Assign default error_log, but undef it if not readable
-    #
-    if ( !defined( $self->{error_log} ) && defined( $self->{log_dir} ) ) {
-        $self->{error_log} = catdir( $self->log_dir, "error_log" );
-    }
-    if ( defined( $self->{error_log} ) && !-r $self->{error_log} ) {
-        $log->debugf( "cannot read error_log path '%s', not using",
-            $self->{error_log} );
-        undef $self->{error_log};
-    }
-}
-
 sub _build_bind_addr {
     return "localhost";
+}
+
+sub _build_error_log {
+    my $self = shift;
+    return
+      defined( $self->log_dir ) ? catdir( $self->log_dir, "error_log" ) : undef;
 }
 
 sub _build_description {
@@ -103,11 +97,31 @@ sub _build_use_sudo {
 #
 
 sub handle_cmdline {
-    my ( $self, %params ) = @_;
+    my ( $class, %params ) = @_;
 
-    my $cmd = $params{cmd} || die "no cmd passed";
+    my $ctlopts = $params{ctlopts} || {};
+    my $usage = $params{usage} || sub { pod2usage( $_[0] ) };
+    my $cmd     = $params{cmd};
     my $verbose = $params{verbose};
 
+    # Accept constructor parameters as options with _ replaced with -, e.g. --bind-addr, --error-log
+    #
+    my ( %new_ctlopts, $help );
+    my %get_options_params = (
+        'h|help' => \$help,
+        ( exists( $params{cmd} )     ? () : ( 'k|cmd=s'     => \$cmd ) ),
+        ( exists( $params{verbose} ) ? () : ( 'v|verbose=s' => \$verbose ) ),
+        map { ( my $opt = $_ ) =~ s/_/\-/g; ( "$opt=s", \$new_ctlopts{$_} ) }
+          qw(bind_addr error_log log_dir name pid_file port root_dir use_sudo wait_for_status_secs)
+    );
+    GetOptions(%get_options_params);
+    $usage->("")                if $help;
+    $usage->("must specify -k") if !$cmd;
+    $usage->( sprintf( "unrecognized options: %s", join( ", ", @ARGV ) ) )
+      if @ARGV;
+
+    # Start logging to stdout
+    #
     my $dispatcher = Log::Dispatch->new();
     $dispatcher->add(
         Log::Dispatch::Screen->new(
@@ -118,8 +132,11 @@ sub handle_cmdline {
         )
     );
     Log::Any->set_adapter( 'Dispatch', dispatcher => $dispatcher );
-    my @valid_commands = $self->_valid_commands;
 
+    $ctlopts = { %$ctlopts, slice_def( \%new_ctlopts, keys(%new_ctlopts) ) };
+    my $self = $class->new(%$ctlopts);
+
+    my @valid_commands = $self->_valid_commands;
     if ( defined($cmd) && grep { $_ eq $cmd } @valid_commands ) {
         $self->$cmd();
     }
@@ -542,23 +559,75 @@ Restart the server (by stopping it, then starting it).
 
 Log the server's status.
 
+=back
+
+=head2 Command-line processing
+
+=over
+
 =item handle_cmdline (params)
 
-Helper method to process a command-line command for a script like apachectl.
-Takes the following key/value parameters:
+Helper method to implement a command-line script like apachectl, including
+processing options from L<@ARGV>. At its simplest:
+
+   #!/usr/bin/perl -w
+   use strict;
+   use Server::Control::MyServer;
+
+   Server::Control::MyServer->handle_cmdline();
+
+This will implement a command-line script that
+
+=over
+
+=item *
+
+Parses options --bind-addr, --error_log, --root_dir, etc. to be fed into
+C<Server::Control::MyServer> constructor
+
+=item *
+
+Parses options -h|--help, -v|--verbose in the expected way
+
+=item *
+
+Gets a command like 'start' from -k|--cmd, and calls this on the
+C<Server::Control::MyServer> object
+
+=item *
+
+Sends any log output to STDERR
+
+=back
+
+See the source for L<apachectlp> for a more involved example that processes
+some Apache-specific command-line options before passing the remainder to
+C<handle_cmdline>.
+
+C<handle_cmdline> takes the following key/value parameters:
 
 =over
 
 =item *
 
 I<cmd> - one of start, stop, restart, or ping. It will be called on the
-Server::Control object. Required. An appropriate usage error will be thrown for
-a bad or missing command.
+Server::Control object. If not passed, it will be taken from -k|--cmd. If
+I<cmd> cannot be found or is not one of the valid choices, throws a usage
+error.
 
 =item *
 
 I<verbose> - a boolean indicating whether the log level will be set to 'debug'
-or 'info'. Would typically come from a -v or --verbose switch. Default false.
+or 'info'. If not passed, will be taken from -v|--verbose. Defaults to false.
+
+=item *
+
+I<usage> - a code reference taking a single message parameter. This will be
+called when -h|--help is specified or in the case of missing or invalid
+command-line options.  It should print the message followed by usage
+information, and exit. Defaults to
+
+    sub { pod2usage($_[0]) }
 
 =back
 

@@ -3,34 +3,22 @@ use strict;
 use Server::Control::Apache;
 use Hash::MoreUtils qw(slice_def);
 use Pod::Usage;
-use Getopt::Long qw(GetOptions);
+use Getopt::Long qw(:config pass_through);
 
 my ( $help, $cmd, $verbose, %ctlopts );
-my $class = 'Server::Control::Apache';
 
 GetOptions(
-    'b|httpd-binary' => \$ctlopts{httpd_binary},
-    'c|class=s'      => \$class,
-    'd=s'            => \$ctlopts{root_dir},
-    'f=s'            => \$ctlopts{conf_file},
-    'h|help'         => \$help,
-    'k=s'            => \$cmd,
-    'v|verbose'      => \$verbose,
-
-    'bind-addr=s' => \$ctlopts{bind_addr},
-    'error-log=s' => \$ctlopts{error_log},
-    'name=s'      => \$ctlopts{name},
-    'port=s'      => \$ctlopts{port},
-    'pid-file=s'  => \$ctlopts{pid_file},
+    'b|httpd-binary'  => \$ctlopts{httpd_binary},
+    'd|server-root=s' => \$ctlopts{root_dir},
+    'f|conf-file=s'   => \$ctlopts{conf_file},
 ) or pod2usage(2);
-pod2usage(1) if $help;
-pod2usage( msg => "must specify -k", verbose => 1 ) if !$cmd;
 pod2usage( msg => "must specify -d or -f", verbose => 1 )
   if !grep { defined( $ctlopts{$_} ) } qw(root_dir conf_file);
-
 %ctlopts = slice_def( \%ctlopts, keys(%ctlopts) );
-my $ctl = $class->new(%ctlopts);
-$ctl->handle_cmdline( cmd => $cmd, verbose => $verbose );
+Server::Control::Apache->handle_cmdline(
+    ctlopts => \%ctlopts,
+    usage   => sub { pod2usage( msg => $_[0], verbose => 1 ) }
+);
 
 __END__
 
@@ -75,21 +63,23 @@ Uses sudo by default when using restricted (< 1024) port
 Required options: -k, and either -d or -f.
 
  -b, --httpd-binary  Specify an httpd binary - defaults to the first httpd in user's PATH
- -c, --class         Specify a customized class to use instead of Server::Control::Apache
- -d                  Specify the server root - will determine from configuration file if given
- -f                  Specify a configuration file - defaults to conf/httpd.conf under server root
+     --class         Specify a customized class to use instead of Server::Control::Apache
+ -d, --server-root   Specify the server root - will determine from configuration file if given
+ -f, --conf-file     Specify a configuration file - defaults to conf/httpd.conf under server root
  -h, --help          Print help message
- -k                  Specify command - start, stop, restart, or ping
+ -k, --cmd           Specify command - start, stop, restart, or ping
  -v, --verbose       Show verbose output
 
 Server::Control needs the values below and usually gets them by parsing the
 configuration file, but you may pass any of them if the parsing isn't working.
 
  --bind-addr
- --name
  --error-log
- --port
+ --name
  --pid-file
+ --port
+ --use-sudo
+ --wait-for-status-secs
 
 =head1 AUTHOR
 
