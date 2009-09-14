@@ -150,8 +150,9 @@ sub start {
     my $self = shift;
 
     if ( my $proc = $self->is_running() ) {
-        $log->warnf( "%s already running (pid %d)",
-            $self->description(), $proc->pid );
+        ( my $status = $self->status_as_string() ) =~
+          s/running/already running/;
+        $log->warnf($status);
         return;
     }
     elsif ( $self->is_listening() ) {

@@ -77,7 +77,7 @@ sub test_simple : Tests(8) {
     $log->contains_only_ok(qr/is now running.* and listening to port $port/);
     ok( $ctl->is_running(), "is running" );
     $ctl->start();
-    $log->contains_only_ok( qr/server '.*' already running/,
+    $log->contains_only_ok( qr/server '.*' is already running/,
         "start: already running" );
 
     $ctl->stop();
