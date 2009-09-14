@@ -4,6 +4,9 @@ Revision history for Server-Control
 
 0.08  Sep 11, 2009
 
+- Rename root_dir to server_root - just more intuitive for existing apache users
+- Add more functionality to handle_cmdline to simplify command-line scripts like apachectlp
+
 0.07  Sep 11, 2009
 
 - Fix apachectlp --bind-addr, --error-log, etc options to actually take values
