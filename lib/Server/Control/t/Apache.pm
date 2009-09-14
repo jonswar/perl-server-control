@@ -36,7 +36,7 @@ sub create_ctl {
         MaxSpareServers 2
     ";
     write_file( "$temp_dir/conf/httpd.conf", $conf );
-    return Server::Control::Apache->new( root_dir => $temp_dir );
+    return Server::Control::Apache->new( server_root => $temp_dir );
 }
 
 sub test_build_default : Test(6) {
@@ -76,9 +76,9 @@ sub test_build_alternate : Test(6) {
     write_file( $conf_file, $conf );
     my $ctl =
       Server::Control::Apache->new( conf_file => $conf_file, name => 'foo' );
-    is( $ctl->root_dir,  $temp_dir, "determined root_dir from conf file" );
-    is( $ctl->bind_addr, "1.2.3.4", "determined bind_addr from conf file" );
-    is( $ctl->port,      $port,     "determined port from conf file" );
+    is( $ctl->server_root, $temp_dir, "determined server_root from conf file" );
+    is( $ctl->bind_addr,   "1.2.3.4", "determined bind_addr from conf file" );
+    is( $ctl->port,        $port,     "determined port from conf file" );
     is( $ctl->pid_file, "$temp_dir/logs/httpd.pid",
         "determined pid_file from default" );
     is( $ctl->description, "server 'foo'",
@@ -97,7 +97,7 @@ sub test_missing_params : Test(1) {
             pid_file => $self->{temp_dir} . "/logs/httpd.pid"
         )->conf_file();
     }
-    qr/no conf_file or root_dir specified/;
+    qr/no conf_file or server_root specified/;
 }
 
 sub is_realpath {

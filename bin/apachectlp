@@ -9,11 +9,11 @@ my ( $help, $cmd, $verbose, %ctlopts );
 
 GetOptions(
     'b|httpd-binary'  => \$ctlopts{httpd_binary},
-    'd|server-root=s' => \$ctlopts{root_dir},
+    'd|server-root=s' => \$ctlopts{server_root},
     'f|conf-file=s'   => \$ctlopts{conf_file},
 ) or pod2usage(2);
 pod2usage( msg => "must specify -d or -f", verbose => 1 )
-  if !grep { defined( $ctlopts{$_} ) } qw(root_dir conf_file);
+  if !grep { defined( $ctlopts{$_} ) } qw(server_root conf_file);
 %ctlopts = slice_def( \%ctlopts, keys(%ctlopts) );
 Server::Control::Apache->handle_cmdline(
     ctlopts => \%ctlopts,

@@ -15,9 +15,9 @@ if ( !scalar( which('httpd') ) ) {
 plan( tests => 11 );
 
 # How to pick this w/o possibly conflicting...
-my $port     = 15432;
-my $temp_dir = tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
-my $ctl      = Server::Control::t::Apache->create_ctl( $port, $temp_dir );
+my $port        = 15432;
+my $server_root = tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
+my $ctl         = Server::Control::t::Apache->create_ctl( $port, $server_root );
 
 sub try {
     my ( $opts, $expected, $desc ) = @_;
@@ -44,31 +44,35 @@ eval {
 
     try( "-f $conf_file -k stop", qr/is not running/, 'when not running' );
     try(
-        "-d $temp_dir -k start",
+        "-d $server_root -k start",
         qr/is now running .* and listening to port/,
         'when not running'
     );
     try( "-f $conf_file -k start", qr/already running/, 'when running' );
     try(
-        "-d $temp_dir -k ping",
+        "-d $server_root -k ping",
         qr/is running .* and listening to port/,
         'when running'
     );
 
     try(
-        "-f $conf_file -k ping --name foo --pid-file $temp_dir/logs/my-httpd.pid --port $port",
+        "-f $conf_file -k ping --name foo --pid-file $server_root/logs/my-httpd.pid --port $port",
         qr/server 'foo' is running .* and listening to port/,
         'ping when running, specify name, pid file and port on command line'
     );
 
-    try( "-d $temp_dir -k stop",  qr/stopped/,     'when running' );
-    try( "-f $conf_file -k ping", qr/not running/, 'when not running' );
+    try( "--server-root $server_root -k stop", qr/stopped/, 'when running' );
+    try( "--conf-file $conf_file -k ping", qr/not running/,
+        'when not running' );
 
-    try_error( "-f $conf_file",         qr/must specify -k.*Usage:/s );
-    try_error( "-k start", qr/must specify -d or -f.*Usage:/s );
+    try_error( "-f $conf_file", qr/must specify -k.*Usage:/s );
+    try_error( "-k start",      qr/must specify -d or -f.*Usage:/s );
     try_error( "-k bleah -f $conf_file",
         qr/bad command 'bleah': must be one of/s );
-    try_error( "-k ping -f $conf_file --bad-option", qr/unrecognized options: --bad-option/);
+    try_error(
+        "-k ping -f $conf_file --bad-option",
+        qr/unrecognized options: --bad-option/
+    );
 };
 my $error = $@;
 cleanup();
