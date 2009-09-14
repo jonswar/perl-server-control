@@ -32,6 +32,7 @@ requires 'Moose'                       => '0.66';
 requires 'Pod::Usage'                  => 0;
 requires 'Proc::ProcessTable'          => '0.42';
 requires 'Time::HiRes'                 => 0;
+requires 'YAML::Any'                   => 0;
 
 recommends 'Unix::Lsof'                => '0.0.9';
 
