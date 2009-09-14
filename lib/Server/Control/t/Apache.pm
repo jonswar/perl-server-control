@@ -20,7 +20,7 @@ sub check_httpd_binary : Test(startup) {
 }
 
 sub create_ctl {
-    my ( $self, $port, $temp_dir ) = @_;
+    my ( $self, $port, $temp_dir, %extra_params ) = @_;
 
     mkpath( "$temp_dir/logs", 0, 0775 );
     mkpath( "$temp_dir/conf", 0, 0775 );
@@ -36,7 +36,8 @@ sub create_ctl {
         MaxSpareServers 2
     ";
     write_file( "$temp_dir/conf/httpd.conf", $conf );
-    return Server::Control::Apache->new( server_root => $temp_dir );
+    return Server::Control::Apache->new( server_root => $temp_dir,
+        %extra_params );
 }
 
 sub test_build_default : Test(6) {

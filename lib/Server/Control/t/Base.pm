@@ -1,7 +1,7 @@
 package Server::Control::t::Base;
 use base qw(Test::Class);
 use File::Slurp;
-use File::Temp qw(tempdir);
+use File::Temp qw(tempfile tempdir);
 use Guard;
 use HTTP::Server::Simple;
 use Log::Any;
@@ -20,7 +20,7 @@ our @ctls;
 # Moved up from Server::Control::t::NetServer::create_ctl because it is used
 # in test_port_busy too
 sub create_net_server_ctl {
-    my ( $self, $port, $temp_dir ) = @_;
+    my ( $self, $port, $temp_dir, %extra_params ) = @_;
 
     require Server::Control::NetServer;
     return Server::Control::NetServer->new(
@@ -32,6 +32,7 @@ sub create_net_server_ctl {
             user     => geteuid(),
             group    => getegid()
         },
+        %extra_params
     );
 }
 
@@ -142,6 +143,44 @@ sub test_corrupt_pid_file : Test(3) {
     $log->contains_ok(qr/deleting bogus pid file/);
     ok( $ctl->is_running(), "is running" );
     $ctl->stop();
+}
+
+sub test_rc_file : Tests(6) {
+    my $self = shift;
+
+    my $rc_contents = join( "\n", "bind_addr: 1.2.3.4", "name: foo",
+        "wait_for_status_secs: 7" );
+    my $temp_dir2 =
+      tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
+
+    my $test_properties = sub {
+        my $ctl = shift;
+        is( $ctl->bind_addr,            "1.2.3.4", "bind_addr" );
+        is( $ctl->name,                 "bar",     "name" );
+        is( $ctl->wait_for_status_secs, 7,         "wait_for_status_secs" );
+    };
+
+    {
+        write_file( $temp_dir2 . "/.serverctlrc", $rc_contents );
+        my $ctl = $self->create_ctl(
+            $self->{port}, $temp_dir2,
+            server_root => $temp_dir2,
+            name        => "bar"
+        );
+        $test_properties->($ctl);
+    }
+
+    {
+        my ( $fh, $rc_file ) =
+          tempfile( 'name-XXXX', DIR => '/tmp', UNLINK => 1 );
+        write_file( $rc_file, $rc_contents );
+        my $ctl = $self->create_ctl(
+            $self->{port}, $temp_dir2,
+            serverctlrc => $rc_file,
+            name        => "bar"
+        );
+        $test_properties->($ctl);
+    }
 }
 
 sub cleanup {

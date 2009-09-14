@@ -12,6 +12,7 @@ use Pod::Usage;
 use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
 use Server::Control::Util qw(is_port_active something_is_listening_msg);
+use YAML::Any;
 use strict;
 use warnings;
 
@@ -44,6 +45,27 @@ use constant {
 #
 # ATTRIBUTE BUILDERS
 #
+
+# See if there is an rc_file, in serverctlrc parameter or in
+# server_root/.serverctlrc; if so, read from it and merge with parameters
+# passed to constructor.
+#
+sub BUILDARGS {
+    my $class  = shift;
+    my %params = @_;
+
+    my $rc_file = delete( $params{serverctlrc} )
+      || ( defined( $params{server_root} )
+        && "$params{server_root}/.serverctlrc" );
+    if ( defined $rc_file && -f $rc_file ) {
+        my $rc_params = YAML::Any::LoadFile($rc_file);
+        die "expected hashref from rc_file '$rc_file', got '$rc_params'"
+          unless ref($rc_params) eq 'HASH';
+        %params = ( %$rc_params, %params );
+    }
+
+    return $class->SUPER::BUILDARGS(%params);
+}
 
 sub _build_bind_addr {
     return "localhost";
@@ -461,28 +483,30 @@ The following subclasses are currently available as part of this distribution:
 
 =item *
 
-L<Server::Control::Apache|Server::Control::Apache> - Apache httpd
+L<Server::Control::Apache> - Apache httpd
 
 =item *
 
-L<Server::Control::Apache|Server::Control::HTTPServerSimple> -
-HTTP::Server::Simple server
+L<Server::Control::HTTPServerSimple> - HTTP::Server::Simple server
 
 =item *
 
-L<Server::Control::Apache|Server::Control::NetServer> - Net::Server server
+L<Server::Control::NetServer> - Net::Server server
 
 =back
 
 These will probably be moved into their own distributions once the
 implementation stabilizes.
 
-=head1 CONSTRUCTOR
+=head1 CONSTRUCTOR PARAMETERS
 
-You can pass the following common options to the constructor. Some subclasses
-can deduce some of these options without needing an explicit value passed in.
-For example, L<Server::Control::Apache|Server::Control::Apache> can deduce many
-of these from the Apache conf file.
+You can pass the following common parameters to the constructor, or include
+them in an L<serverctlrc|rc file>.
+
+Some subclasses can deduce some of these parameters without needing an explicit
+value passed in.  For example,
+L<Server::Control::Apache|Server::Control::Apache> can deduce many of these
+from the Apache conf file.
 
 =over
 
@@ -525,7 +549,19 @@ also L</bind_addr>.
 =item server_root
 
 Root directory of server, for conf files, log files, etc. This will affect
-defaults of other options like I<log_dir>.
+defaults of other parameters like I<log_dir>.
+
+=item serverctlrc
+
+Path to an rc file containing, in YAML form, one or parameters to pass to the
+constructor. If not specified, will look for L</server_root>/.serverctlrc. e.g.
+
+    # This is my .serverctlrc
+    use_sudo: 1
+    wait_for_status-secs: 5
+
+Parameters passed explicitly to the constructor take precedence over parameters
+in an rc file.
 
 =item use_sudo
 
@@ -570,7 +606,7 @@ Log the server's status.
 =item handle_cmdline (params)
 
 Helper method to implement a command-line script like apachectl, including
-processing options from L<@ARGV>. At its simplest:
+processing options from C<@ARGV>. At its simplest:
 
    #!/usr/bin/perl -w
    use strict;
@@ -775,7 +811,5 @@ Jonathan Swartz
 
 Copyright (C) 2007 Jonathan Swartz, all rights reserved.
 
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
+This program is free
 
-=cut

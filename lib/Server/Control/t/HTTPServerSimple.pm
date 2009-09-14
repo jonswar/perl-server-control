@@ -14,7 +14,7 @@ my $test_server_class = Moose::Meta::Class->create_anon_class(
 );
 
 sub create_ctl {
-    my ( $self, $port, $temp_dir ) = @_;
+    my ( $self, $port, $temp_dir, %extra_params ) = @_;
 
     return Server::Control::HTTPServerSimple->new(
         server_class      => $test_server_class->name,
@@ -25,6 +25,7 @@ sub create_ctl {
             user     => geteuid(),
             group    => getegid()
         },
+        %extra_params
     );
 }
 

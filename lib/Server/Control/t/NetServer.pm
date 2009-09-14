@@ -7,9 +7,9 @@ use strict;
 use warnings;
 
 sub create_ctl {
-    my ( $self, $port, $temp_dir ) = @_;
+    my ( $self, $port, $temp_dir, %extra_params ) = @_;
 
-    return $self->create_net_server_ctl( $port, $temp_dir );
+    return $self->create_net_server_ctl( $port, $temp_dir, %extra_params );
 }
 
 sub test_missing_params : Test(2) {
