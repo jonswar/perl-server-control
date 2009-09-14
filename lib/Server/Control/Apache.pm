@@ -13,7 +13,7 @@ extends 'Server::Control';
 has 'conf_file'     => ( is => 'ro', lazy_build => 1 );
 has 'httpd_binary'  => ( is => 'ro', lazy_build => 1 );
 has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'root_dir'      => ( is => 'ro', lazy_build => 1 );
+has 'server_root'   => ( is => 'ro', lazy_build => 1 );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -21,16 +21,16 @@ sub BUILD {
     my ( $self, $params ) = @_;
 
     # Ensure that we have an existent conf_file after object is built. It
-    # can come from the conf_file or root_dir parameter.
+    # can come from the conf_file or server_root parameter.
     #
     if ( my $conf_file = $self->{conf_file} ) {
         die "no such conf file '$conf_file'" unless -f $conf_file;
         $self->{conf_file} = realpath( $self->{conf_file} );
     }
-    elsif ( defined( $self->{root_dir} ) ) {
-        $self->{root_dir} = realpath( $self->{root_dir} );
+    elsif ( defined( $self->{server_root} ) ) {
+        $self->{server_root} = realpath( $self->{server_root} );
         my $default_conf_file =
-          catfile( $self->{root_dir}, "conf", "httpd.conf" );
+          catfile( $self->{server_root}, "conf", "httpd.conf" );
         if ( -f $default_conf_file ) {
             $self->{conf_file} = $default_conf_file;
             $log->debugf( "defaulting conf file to '%s'", $default_conf_file )
@@ -43,7 +43,7 @@ sub BUILD {
         }
     }
     else {
-        die "no conf_file or root_dir specified";
+        die "no conf_file or server_root specified";
     }
 }
 
@@ -73,13 +73,13 @@ sub _build_parsed_config {
     return \%parsed_config;
 }
 
-sub _build_root_dir {
+sub _build_server_root {
     my $self = shift;
-    if ( my $root_dir = $self->parsed_config->{ServerRoot} ) {
-        return $root_dir;
+    if ( my $server_root = $self->parsed_config->{ServerRoot} ) {
+        return $server_root;
     }
     else {
-        die "no root_dir specified and cannot determine from conf file";
+        die "no server_root specified and cannot determine from conf file";
     }
 }
 
@@ -167,7 +167,7 @@ Server::Control::Apache -- Control Apache ala apachtctl
     use Server::Control::Apache;
 
     my $apache = Server::Control::Apache->new(
-        root_dir  => '/my/apache/dir'
+        server_root  => '/my/apache/dir'
        # OR    
         conf_file => '/my/apache/dir/conf/httpd.conf'
     );
@@ -198,9 +198,9 @@ uses the first one found.
 
 =item conf_file
 
-Path to conf file. Will try to use L<Server::Control/root_dir>/conf/httpd.conf
-if C<root_dir> was specified and C<conf_file> was not. Throws an error if it
-cannot be determined.
+Path to conf file. Will try to use
+L<Server::Control/server_root>/conf/httpd.conf if C<server_root> was specified
+and C<conf_file> was not. Throws an error if it cannot be determined.
 
 =back
 

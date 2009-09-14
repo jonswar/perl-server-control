@@ -28,7 +28,7 @@ has 'name'        => ( is => 'ro', lazy_build => 1 );
 has 'pid_file'    => ( is => 'ro', lazy_build => 1 );
 has 'poll_for_status_secs' => ( is => 'ro', default    => 0.2 );
 has 'port'                 => ( is => 'ro', lazy_build => 1 );
-has 'root_dir'             => ( is => 'ro' );
+has 'server_root'          => ( is => 'ro' );
 has 'use_sudo'             => ( is => 'ro', lazy_build => 1 );
 has 'wait_for_status_secs' => ( is => 'ro', default    => 10 );
 
@@ -63,15 +63,16 @@ sub _build_description {
 
 sub _build_log_dir {
     my $self = shift;
-    return
-      defined( $self->root_dir ) ? catdir( $self->root_dir, "logs" ) : undef;
+    return defined( $self->server_root )
+      ? catdir( $self->server_root, "logs" )
+      : undef;
 }
 
 sub _build_name {
     my $self = shift;
     my $name;
-    if ( defined( my $root_dir = $self->root_dir ) ) {
-        $name = basename($root_dir);
+    if ( defined( my $server_root = $self->server_root ) ) {
+        $name = basename($server_root);
     }
     else {
         ( $name = ref($self) ) =~ s/^Server::Control:://;
@@ -112,7 +113,7 @@ sub handle_cmdline {
         ( exists( $params{cmd} )     ? () : ( 'k|cmd=s'     => \$cmd ) ),
         ( exists( $params{verbose} ) ? () : ( 'v|verbose=s' => \$verbose ) ),
         map { ( my $opt = $_ ) =~ s/_/\-/g; ( "$opt=s", \$new_ctlopts{$_} ) }
-          qw(bind_addr error_log log_dir name pid_file port root_dir use_sudo wait_for_status_secs)
+          qw(bind_addr error_log log_dir name pid_file port server_root use_sudo wait_for_status_secs)
     );
     GetOptions(%get_options_params);
     $usage->("")                if $help;
@@ -498,13 +499,13 @@ attempts to show recent messages in the error log.
 
 =item log_dir
 
-Location of logs. Defaults to I<root_dir>/logs if I<root_dir> is defined,
+Location of logs. Defaults to I<server_root>/logs if I<server_root> is defined,
 otherwise undef.
 
 =item name
 
 Name of the server to be used in output and logs. A generic default will be
-chosen if none is provided, based on either L</root_dir> or the classname.
+chosen if none is provided, based on either L</server_root> or the classname.
 
 =item pid_file
 
@@ -521,7 +522,7 @@ At least one port that server will listen to, so that C<Server::Control> can
 check it on start/stop. Will throw an error if this cannot be determined. See
 also L</bind_addr>.
 
-=item root_dir
+=item server_root
 
 Root directory of server, for conf files, log files, etc. This will affect
 defaults of other options like I<log_dir>.
@@ -583,7 +584,7 @@ This will implement a command-line script that
 
 =item *
 
-Parses options --bind-addr, --error_log, --root_dir, etc. to be fed into
+Parses options --bind-addr, --error-log, --server-root, etc. to be fed into
 C<Server::Control::MyServer> constructor
 
 =item *
@@ -612,14 +613,14 @@ C<handle_cmdline> takes the following key/value parameters:
 =item *
 
 I<cmd> - one of start, stop, restart, or ping. It will be called on the
-Server::Control object. If not passed, it will be taken from -k|--cmd. If
+Server::Control::* object. If not passed, it will be taken from -k|--cmd. If
 I<cmd> cannot be found or is not one of the valid choices, throws a usage
 error.
 
 =item *
 
-I<verbose> - a boolean indicating whether the log level will be set to 'debug'
-or 'info'. If not passed, will be taken from -v|--verbose. Defaults to false.
+I<ctlopts> - optional hashref of parameters to pass to Server::Control::*
+constructor
 
 =item *
 
@@ -629,6 +630,11 @@ command-line options.  It should print the message followed by usage
 information, and exit. Defaults to
 
     sub { pod2usage($_[0]) }
+
+=item *
+
+I<verbose> - a boolean indicating whether the log level will be set to 'debug'
+or 'info'. If not passed, will be taken from -v|--verbose. Defaults to false.
 
 =back
 
