@@ -65,13 +65,13 @@ eval {
     try( "--conf-file $conf_file -k ping", qr/not running/,
         'when not running' );
 
-    try_error( "-f $conf_file", qr/must specify -k.*Usage:/s );
-    try_error( "-k start",      qr/must specify -d or -f.*Usage:/s );
+    try_error( "-f $conf_file", qr/must specify -k|--action.*usage:/si );
+    try_error( "-k start",      qr/no conf_file or server_root specified/si );
     try_error( "-k bleah -f $conf_file",
-        qr/bad command 'bleah': must be one of/s );
+        qr/invalid action 'bleah' - must be one of/s );
     try_error(
         "-k ping -f $conf_file --bad-option",
-        qr/unrecognized options: --bad-option/
+        qr/Unknown option: bad-option.*usage:/si
     );
 };
 my $error = $@;

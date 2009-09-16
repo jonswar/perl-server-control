@@ -3,11 +3,11 @@ use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
 use Getopt::Long qw(GetOptions);
-use Hash::MoreUtils qw(slice_def);
 use IPC::System::Simple qw();
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Moose;
+use Moose::Util::TypeConstraints;
 use Pod::Usage;
 use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
@@ -18,20 +18,55 @@ use warnings;
 
 our $VERSION = '0.08';
 
+with 'MooseX::Getopt::Dashes';
+
+#
+# ATTRIBUTES
+#
+
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr'   => ( is => 'ro', lazy_build => 1 );
-has 'description' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'error_log'   => ( is => 'ro', lazy_build => 1 );
-has 'log_dir'     => ( is => 'ro', lazy_build => 1 );
-has 'name'        => ( is => 'ro', lazy_build => 1 );
-has 'pid_file'    => ( is => 'ro', lazy_build => 1 );
-has 'poll_for_status_secs' => ( is => 'ro', default    => 0.2 );
-has 'port'                 => ( is => 'ro', lazy_build => 1 );
-has 'server_root'          => ( is => 'ro' );
-has 'use_sudo'             => ( is => 'ro', lazy_build => 1 );
-has 'wait_for_status_secs' => ( is => 'ro', default    => 10 );
+has 'bind_addr' => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'description' => (
+    traits     => ['NoGetopt'],
+    is         => 'ro',
+    isa        => 'Str',
+    lazy_build => 1,
+    init_arg   => undef
+);
+has 'error_log'            => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'log_dir'              => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'name'                 => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'pid_file'             => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'poll_for_status_secs' => ( is => 'ro', isa => 'Num', default    => 0.2 );
+has 'port'                 => ( is => 'ro', isa => 'Int', lazy_build => 1 );
+has 'server_root' =>
+  ( is => 'ro', isa => 'Str', cmd_aliases => 'd', traits => ['Getopt'] );
+has 'use_sudo'             => ( is => 'ro', isa => 'Bool', lazy_build => 1 );
+has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int',  default    => 10 );
+
+# These are only for command-line. Would like to prevent their use from regular new()...
+#
+has 'action' => (
+    traits        => ['Getopt'],
+    is            => 'ro',
+    isa           => 'Str',
+    cmd_aliases   => 'k',
+    documentation => 'One of ' . __PACKAGE__->valid_cli_actions_as_string(),
+);
+has 'quiet' => (
+    traits        => ['Getopt'],
+    is            => 'ro',
+    cmd_aliases   => 'q',
+    documentation => 'Show only warnings and errors'
+);
+has 'verbose' => (
+    traits        => ['Getopt'],
+    is            => 'ro',
+    cmd_aliases   => 'v',
+    documentation => 'Show more details'
+);
 
 __PACKAGE__->meta->make_immutable();
 
@@ -118,56 +153,6 @@ sub _build_use_sudo {
 #
 # PUBLIC METHODS
 #
-
-sub handle_cmdline {
-    my ( $class, %params ) = @_;
-
-    my $ctlopts = $params{ctlopts} || {};
-    my $usage = $params{usage} || sub { pod2usage( $_[0] ) };
-    my $cmd     = $params{cmd};
-    my $verbose = $params{verbose};
-
-    # Accept constructor parameters as options with _ replaced with -, e.g. --bind-addr, --error-log
-    #
-    my ( %new_ctlopts, $help );
-    my %get_options_params = (
-        'h|help' => \$help,
-        ( exists( $params{cmd} )     ? () : ( 'k|cmd=s'     => \$cmd ) ),
-        ( exists( $params{verbose} ) ? () : ( 'v|verbose=s' => \$verbose ) ),
-        map { ( my $opt = $_ ) =~ s/_/\-/g; ( "$opt=s", \$new_ctlopts{$_} ) }
-          qw(bind_addr error_log log_dir name pid_file port server_root use_sudo wait_for_status_secs)
-    );
-    GetOptions(%get_options_params);
-    $usage->("")                if $help;
-    $usage->("must specify -k") if !$cmd;
-    $usage->( sprintf( "unrecognized options: %s", join( ", ", @ARGV ) ) )
-      if @ARGV;
-
-    # Start logging to stdout
-    #
-    my $dispatcher = Log::Dispatch->new();
-    $dispatcher->add(
-        Log::Dispatch::Screen->new(
-            name      => 'screen',
-            stderr    => 0,
-            min_level => $verbose ? 'debug' : 'info',
-            callbacks => sub { my %params = @_; "$params{message}\n" }
-        )
-    );
-    Log::Any->set_adapter( 'Dispatch', dispatcher => $dispatcher );
-
-    $ctlopts = { %$ctlopts, slice_def( \%new_ctlopts, keys(%new_ctlopts) ) };
-    my $self = $class->new(%$ctlopts);
-
-    my @valid_commands = $self->_valid_commands;
-    if ( defined($cmd) && grep { $_ eq $cmd } @valid_commands ) {
-        $self->$cmd();
-    }
-    else {
-        die sprintf( "bad command '%s': must be one of %s",
-            $cmd, join( ", ", map { "'$_'" } @valid_commands ) );
-    }
-}
 
 sub start {
     my $self = shift;
@@ -346,7 +331,7 @@ sub is_listening {
     return $is_listening;
 }
 
-sub run_command {
+sub run_system_command {
     my ( $self, $cmd ) = @_;
 
     if ( $self->use_sudo() ) {
@@ -356,13 +341,33 @@ sub run_command {
     IPC::System::Simple::run($cmd);
 }
 
+sub valid_cli_actions {
+    return qw(start stop restart ping);
+}
+
+sub valid_cli_actions_as_string {
+    return join( ", ", ( map { "'$_'" } valid_cli_actions() ) );
+}
+
+sub handle_cli {
+    my $class = shift;
+
+    # Create object based on @ARGV options
+    #
+    my $self = $class->new_with_options(@_);
+
+    # Start logging to stdout
+    #
+    $self->_setup_cli_logging();
+
+    # Validate and perform specified action
+    #
+    $self->_perform_cli_action();
+}
+
 #
 # PRIVATE METHODS
 #
-
-sub _valid_commands {
-    return qw(start stop restart ping);
-}
 
 sub _start_error_log_watch {
     my ($self) = @_;
@@ -419,6 +424,47 @@ sub _handle_corrupt_pid_file {
     my $pid_file = $self->pid_file();
     $log->infof( "deleting bogus pid file '%s'", $pid_file );
     unlink $pid_file or die "cannot remove '$pid_file': $!";
+}
+
+sub _setup_cli_logging {
+    my ($self) = @_;
+
+    my $log_level =
+      $self->verbose ? 'debug' : $self->quiet ? 'warning' : 'info';
+    my $dispatcher =
+      Log::Dispatch->new( outputs =>
+          [ [ 'Screen', stderr => 0, min_level => $log_level, newline => 1 ] ]
+      );
+    Log::Any->set_adapter( 'Dispatch', dispatcher => $dispatcher );
+}
+
+sub _perform_cli_action {
+    my ($self) = @_;
+    my $action = $self->action;
+
+    if ( !defined $action ) {
+        $self->_cli_usage("must specify -k|--action");
+    }
+    elsif ( !grep { $_ eq $action } $self->valid_cli_actions ) {
+        $self->_cli_usage(
+            sprintf(
+                "invalid action '%s' - must be one of %s",
+                $action, $self->valid_cli_actions_as_string
+            )
+        );
+    }
+    else {
+        $self->$action();
+    }
+}
+
+sub _cli_usage {
+    my ( $self, $msg ) = @_;
+
+    print STDERR "$msg\n";
+    local @ARGV = '--help';
+    $self->new_with_options();
+    exit;    # should never get here, but just in case
 }
 
 1;
@@ -603,77 +649,6 @@ Log the server's status.
 
 =over
 
-=item handle_cmdline (params)
-
-Helper method to implement a command-line script like apachectl, including
-processing options from C<@ARGV>. At its simplest:
-
-   #!/usr/bin/perl -w
-   use strict;
-   use Server::Control::MyServer;
-
-   Server::Control::MyServer->handle_cmdline();
-
-This will implement a command-line script that
-
-=over
-
-=item *
-
-Parses options --bind-addr, --error-log, --server-root, etc. to be fed into
-C<Server::Control::MyServer> constructor
-
-=item *
-
-Parses options -h|--help, -v|--verbose in the expected way
-
-=item *
-
-Gets a command like 'start' from -k|--cmd, and calls this on the
-C<Server::Control::MyServer> object
-
-=item *
-
-Sends any log output to STDERR
-
-=back
-
-See the source for L<apachectlp> for a more involved example that processes
-some Apache-specific command-line options before passing the remainder to
-C<handle_cmdline>.
-
-C<handle_cmdline> takes the following key/value parameters:
-
-=over
-
-=item *
-
-I<cmd> - one of start, stop, restart, or ping. It will be called on the
-Server::Control::* object. If not passed, it will be taken from -k|--cmd. If
-I<cmd> cannot be found or is not one of the valid choices, throws a usage
-error.
-
-=item *
-
-I<ctlopts> - optional hashref of parameters to pass to Server::Control::*
-constructor
-
-=item *
-
-I<usage> - a code reference taking a single message parameter. This will be
-called when -h|--help is specified or in the case of missing or invalid
-command-line options.  It should print the message followed by usage
-information, and exit. Defaults to
-
-    sub { pod2usage($_[0]) }
-
-=item *
-
-I<verbose> - a boolean indicating whether the log level will be set to 'debug'
-or 'info'. If not passed, will be taken from -v|--verbose. Defaults to false.
-
-=back
-
 =back
 
 =head2 Status methods
@@ -746,7 +721,7 @@ L<Server::Control::Apache|Server::Control::Apache> for an example.
 
 This actually starts the server - it is called by L</start> and must be defined
 by the subclass. Any parameters to L</start> are passed here. If your server is
-started via the command-line, you may want to use L</run_command>.
+started via the command-line, you may want to use L</run_system_command>.
 
 =item do_stop ($proc)
 
@@ -755,7 +730,7 @@ the subclass. By default, it will send a SIGTERM to the process. I<$proc> is a
 L<Proc::ProcessTable::Process|Proc::ProcessTable::Process> object representing
 the current process, as returned by L</is_running>.
 
-=item run_command ($cmd)
+=item run_system_command ($cmd)
 
 Runs the specified I<$cmd> on the command line. Adds sudo if necessary (see
 L</use_sudo>), logs the command, and throws runtime errors appropriately.
@@ -811,5 +786,10 @@ Jonathan Swartz
 
 Copyright (C) 2007 Jonathan Swartz, all rights reserved.
 
-This program is free
+Server::Control is provided "as is" and without any express or implied
+warranties, including, without limitation, the implied warranties of
+merchantibility and fitness for a particular purpose.
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
 

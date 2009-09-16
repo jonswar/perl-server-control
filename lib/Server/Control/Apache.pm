@@ -10,10 +10,31 @@ use warnings;
 
 extends 'Server::Control';
 
-has 'conf_file'     => ( is => 'ro', lazy_build => 1 );
-has 'httpd_binary'  => ( is => 'ro', lazy_build => 1 );
-has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'server_root'   => ( is => 'ro', lazy_build => 1 );
+with 'MooseX::Getopt::Dashes';
+
+has 'conf_file' => (
+    traits      => ['Getopt'],
+    is          => 'ro',
+    isa         => 'Str',
+    lazy_build  => 1,
+    cmd_aliases => 'f'
+);
+has 'httpd_binary' => (
+    traits      => ['Getopt'],
+    is          => 'ro',
+    isa         => 'Str',
+    lazy_build  => 1,
+    cmd_aliases => 'b'
+);
+has 'parsed_config' =>
+  ( traits => ['NoGetopt'], is => 'ro', lazy_build => 1, init_arg => undef );
+has 'server_root' => (
+    traits      => ['Getopt'],
+    is          => 'ro',
+    isa         => 'Str',
+    lazy_build  => 1,
+    cmd_aliases => 'd'
+);
 
 __PACKAGE__->meta->make_immutable();
 
@@ -149,7 +170,7 @@ sub run_httpd_command {
     my $conf_file    = $self->conf_file();
 
     my $cmd = "$httpd_binary -k $command -f $conf_file";
-    $self->run_command($cmd);
+    $self->run_system_command($cmd);
 }
 
 1;

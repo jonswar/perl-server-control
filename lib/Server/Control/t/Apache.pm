@@ -36,8 +36,10 @@ sub create_ctl {
         MaxSpareServers 2
     ";
     write_file( "$temp_dir/conf/httpd.conf", $conf );
-    return Server::Control::Apache->new( server_root => $temp_dir,
-        %extra_params );
+    return Server::Control::Apache->new(
+        server_root => $temp_dir,
+        %extra_params
+    );
 }
 
 sub test_build_default : Test(6) {

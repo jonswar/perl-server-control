@@ -1,24 +1,8 @@
 #!/usr/bin/perl -w
 use strict;
 use Server::Control::Apache;
-use Hash::MoreUtils qw(slice_def);
-use Pod::Usage;
-use Getopt::Long qw(:config pass_through);
 
-my ( $help, $cmd, $verbose, %ctlopts );
-
-GetOptions(
-    'b|httpd-binary'  => \$ctlopts{httpd_binary},
-    'd|server-root=s' => \$ctlopts{server_root},
-    'f|conf-file=s'   => \$ctlopts{conf_file},
-) or pod2usage(2);
-pod2usage( msg => "must specify -d or -f", verbose => 1 )
-  if !grep { defined( $ctlopts{$_} ) } qw(server_root conf_file);
-%ctlopts = slice_def( \%ctlopts, keys(%ctlopts) );
-Server::Control::Apache->handle_cmdline(
-    ctlopts => \%ctlopts,
-    usage   => sub { pod2usage( msg => $_[0], verbose => 1 ) }
-);
+Server::Control::Apache->handle_cli();
 
 __END__
 
@@ -67,19 +51,18 @@ Required options: -k, and either -d or -f.
  -d, --server-root   Specify the server root - will determine from configuration file if given
  -f, --conf-file     Specify a configuration file - defaults to conf/httpd.conf under server root
  -h, --help          Print help message
- -k, --cmd           Specify command - start, stop, restart, or ping
+ -k, --action        Specify command - start, stop, restart, or ping
  -v, --verbose       Show verbose output
 
 Server::Control needs the values below and usually gets them by parsing the
-configuration file, but you may pass any of them if the parsing isn't working.
+Apache configuration file, but you may pass any of them if the parsing isn't
+working.
 
  --bind-addr
  --error-log
- --name
  --pid-file
  --port
  --use-sudo
- --wait-for-status-secs
 
 =head1 AUTHOR
 
