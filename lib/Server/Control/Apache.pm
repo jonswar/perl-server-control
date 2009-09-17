@@ -39,6 +39,17 @@ sub _cli_option_pairs {
     );
 }
 
+around '_cli_parse_argv' => sub {
+    my $orig = shift;
+    my $class = shift;
+
+    my %cli_params = $class->$orig(@_);
+    if (!defined($cli_params{server_root}) && !defined($cli_params{conf_file})) {
+        $class->_cli_usage("must specify one of -d or -f");
+    }
+    return %cli_params;
+};
+
 __PACKAGE__->meta->make_immutable();
 
 sub BUILD {
@@ -49,10 +60,11 @@ sub BUILD {
     #
     if ( my $conf_file = $self->{conf_file} ) {
         die "no such conf file '$conf_file'" unless -f $conf_file;
-        $self->{conf_file} = realpath( $self->{conf_file} );
+        $self->{conf_file} = realpath( $conf_file );
     }
-    elsif ( defined( $self->{server_root} ) ) {
-        $self->{server_root} = realpath( $self->{server_root} );
+    elsif ( my $server_root = $self->{server_root} ) {
+        die "no such server root '$server_root'" unless -d $server_root;
+        $self->{server_root} = realpath( $server_root );
         my $default_conf_file =
           catfile( $self->{server_root}, "conf", "httpd.conf" );
         if ( -f $default_conf_file ) {

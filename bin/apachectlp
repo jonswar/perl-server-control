@@ -13,6 +13,7 @@ apachectlp - a more featureful Perl-based replacement for apachectl
 =head1 SYNOPSIS
 
    apachectlp [-f conf_file] [-d server_root] [-b httpd_binary] [-v] -k start|stop|restart|ping
+   apachectlp [-h --help]
 
 =head1 DESCRIPTION
 

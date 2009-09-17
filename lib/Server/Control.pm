@@ -42,8 +42,7 @@ has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int',  default    => 10 );
 # These are only for command-line. Would like to prevent their use from regular new()...
 #
 has 'action' => ( is => 'ro', isa => 'Str' );
-has 'help'   => ( is => 'ro' );
-has 'quiet'  => ( is => 'ro' );
+has 'quiet' => ( is => 'ro' );
 has 'verbose' => ( is => 'ro' );
 
 __PACKAGE__->meta->make_immutable();
@@ -357,11 +356,10 @@ sub new_with_options {
     my ( $class, %passed_params ) = @_;
 
     my %option_pairs = $class->_cli_option_pairs();
-    my %cli_params   = $class->_parse_argv( \%option_pairs );
-    if ( $cli_params{help} ) {
-        $class->_cli_usage();
-    }
-    return $class->new( %passed_params, %cli_params );
+    my %cli_params   = $class->_cli_parse_argv( \%option_pairs );
+
+    my %params = ( %passed_params, %cli_params );
+    return $class->new(%params);
 }
 
 #
@@ -425,7 +423,7 @@ sub _handle_corrupt_pid_file {
     unlink $pid_file or die "cannot remove '$pid_file': $!";
 }
 
-sub _parse_argv {
+sub _cli_parse_argv {
     my ( $class, $option_pairs ) = @_;
 
     my %cli_params;
@@ -433,6 +431,10 @@ sub _parse_argv {
       map { $_ => \$cli_params{ $option_pairs->{$_} } } keys(%$option_pairs);
     $class->_cli_get_options( \@spec, [] );
     %cli_params = slice_def( \%cli_params, keys(%cli_params) );
+
+    $class->_cli_usage( "", 0 ) if !%cli_params;
+    $class->_cli_usage( "", 1 ) if $cli_params{help};
+
     return %cli_params;
 }
 
@@ -441,24 +443,24 @@ sub _cli_get_options {
 
     my $parser = new Getopt::Long::Parser( config => $config );
     if ( !$parser->getoptions(@$spec) ) {
-        $class->_cli_usage();
+        $class->_cli_usage("");
     }
 }
 
 sub _cli_option_pairs {
     return (
-        'h|help'                 => 'help',
-        'v|verbose'              => 'verbose',
-        'q|quiet'                => 'quiet',
-        'k|action=s'             => 'action',
         'bind-addr=s'            => 'bind_addr',
+        'd|server-root=s'        => 'server_root',
         'error-log=s'            => 'error_log',
+        'h|help'                 => 'help',
+        'k|action=s'             => 'action',
         'log-dir=s'              => 'log_dir',
         'name=s'                 => 'name',
         'pid-file=s'             => 'pid_file',
         'port=s'                 => 'port',
-        'd|server-root=s'        => 'server_root',
+        'q|quiet'                => 'quiet',
         'use-sudo=s'             => 'use_sudo',
+        'v|verbose'              => 'verbose',
         'wait-for-status-secs=s' => 'wait_for_status_secs',
     );
 }
@@ -480,7 +482,7 @@ sub _perform_cli_action {
     my $action = $self->action;
 
     if ( !defined $action ) {
-        $self->_cli_usage("must specify -k|--action");
+        $self->_cli_usage("must specify -k");
     }
     elsif ( !grep { $_ eq $action } $self->valid_cli_actions ) {
         $self->_cli_usage(
@@ -497,10 +499,11 @@ sub _perform_cli_action {
 }
 
 sub _cli_usage {
-    my ( $class, $msg ) = @_;
+    my ( $class, $msg, $verbose ) = @_;
 
-    $msg ||= "";
-    pod2usage( -msg => $msg, -verbose => 0, -exitval => 2 );
+    $msg     ||= "";
+    $verbose ||= 0;
+    pod2usage( -msg => $msg, -verbose => $verbose, -exitval => 2 );
 }
 
 1;
