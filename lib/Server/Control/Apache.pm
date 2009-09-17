@@ -12,22 +12,10 @@ use warnings;
 
 extends 'Server::Control';
 
-has 'conf_file' => (
-    is         => 'ro',
-    isa        => 'Str',
-    lazy_build => 1,
-);
-has 'httpd_binary' => (
-    is         => 'ro',
-    isa        => 'Str',
-    lazy_build => 1,
-);
+has 'conf_file'     => ( is => 'ro', lazy_build => 1 );
+has 'httpd_binary'  => ( is => 'ro', lazy_build => 1 );
 has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
-has 'server_root' => (
-    is         => 'ro',
-    isa        => 'Str',
-    lazy_build => 1,
-);
+has 'server_root'   => ( is => 'ro', lazy_build => 1, );
 
 sub _cli_option_pairs {
     my $class = shift;
