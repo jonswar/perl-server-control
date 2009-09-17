@@ -149,7 +149,7 @@ sub test_rc_file : Tests(6) {
     my $self = shift;
 
     my $rc_contents = join( "\n", "bind_addr: 1.2.3.4", "name: foo",
-        "wait_for_status_secs: 7" );
+        "wait-for-status-secs: 7" );
     my $temp_dir2 =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
 
