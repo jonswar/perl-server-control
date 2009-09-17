@@ -2,7 +2,8 @@ package Server::Control;
 use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
-use Getopt::Long qw(GetOptions);
+use Getopt::Long;
+use Hash::MoreUtils qw(slice_def);
 use IPC::System::Simple qw();
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
@@ -18,8 +19,6 @@ use warnings;
 
 our $VERSION = '0.08';
 
-with 'MooseX::Getopt::Dashes';
-
 #
 # ATTRIBUTES
 #
@@ -28,45 +27,24 @@ with 'MooseX::Getopt::Dashes';
 # default, to make life easier for subclasses.
 #
 has 'bind_addr' => ( is => 'ro', isa => 'Str', lazy_build => 1 );
-has 'description' => (
-    traits     => ['NoGetopt'],
-    is         => 'ro',
-    isa        => 'Str',
-    lazy_build => 1,
-    init_arg   => undef
-);
-has 'error_log'            => ( is => 'ro', isa => 'Str', lazy_build => 1 );
-has 'log_dir'              => ( is => 'ro', isa => 'Str', lazy_build => 1 );
-has 'name'                 => ( is => 'ro', isa => 'Str', lazy_build => 1 );
-has 'pid_file'             => ( is => 'ro', isa => 'Str', lazy_build => 1 );
-has 'poll_for_status_secs' => ( is => 'ro', isa => 'Num', default    => 0.2 );
-has 'port'                 => ( is => 'ro', isa => 'Int', lazy_build => 1 );
-has 'server_root' =>
-  ( is => 'ro', isa => 'Str', cmd_aliases => 'd', traits => ['Getopt'] );
+has 'description' =>
+  ( is => 'ro', isa => 'Str', lazy_build => 1, init_arg => undef );
+has 'error_log'            => ( is => 'ro', isa => 'Str',  lazy_build => 1 );
+has 'log_dir'              => ( is => 'ro', isa => 'Str',  lazy_build => 1 );
+has 'name'                 => ( is => 'ro', isa => 'Str',  lazy_build => 1 );
+has 'pid_file'             => ( is => 'ro', isa => 'Str',  lazy_build => 1 );
+has 'poll_for_status_secs' => ( is => 'ro', isa => 'Num',  default    => 0.2 );
+has 'port'                 => ( is => 'ro', isa => 'Int',  lazy_build => 1 );
+has 'server_root'          => ( is => 'ro', isa => 'Str' );
 has 'use_sudo'             => ( is => 'ro', isa => 'Bool', lazy_build => 1 );
 has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int',  default    => 10 );
 
 # These are only for command-line. Would like to prevent their use from regular new()...
 #
-has 'action' => (
-    traits        => ['Getopt'],
-    is            => 'ro',
-    isa           => 'Str',
-    cmd_aliases   => 'k',
-    documentation => 'One of ' . __PACKAGE__->valid_cli_actions_as_string(),
-);
-has 'quiet' => (
-    traits        => ['Getopt'],
-    is            => 'ro',
-    cmd_aliases   => 'q',
-    documentation => 'Show only warnings and errors'
-);
-has 'verbose' => (
-    traits        => ['Getopt'],
-    is            => 'ro',
-    cmd_aliases   => 'v',
-    documentation => 'Show more details'
-);
+has 'action' => ( is => 'ro', isa => 'Str' );
+has 'help'   => ( is => 'ro' );
+has 'quiet'  => ( is => 'ro' );
+has 'verbose' => ( is => 'ro' );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -345,10 +323,6 @@ sub valid_cli_actions {
     return qw(start stop restart ping);
 }
 
-sub valid_cli_actions_as_string {
-    return join( ", ", ( map { "'$_'" } valid_cli_actions() ) );
-}
-
 sub handle_cli {
     my $class = shift;
 
@@ -363,6 +337,21 @@ sub handle_cli {
     # Validate and perform specified action
     #
     $self->_perform_cli_action();
+}
+
+# This method and its helpers are modelled after MooseX::Getopt, which
+# unfortunately I found too flaky to use right now.  If and when it
+# improves, we can hopefully drop it in as a replacement.
+#
+sub new_with_options {
+    my ( $class, %passed_params ) = @_;
+
+    my %option_pairs = $class->_cli_option_pairs();
+    my %cli_params   = $class->_parse_argv( \%option_pairs );
+    if ( $cli_params{help} ) {
+        $class->_cli_usage();
+    }
+    return $class->new( %passed_params, %cli_params );
 }
 
 #
@@ -426,6 +415,37 @@ sub _handle_corrupt_pid_file {
     unlink $pid_file or die "cannot remove '$pid_file': $!";
 }
 
+sub _parse_argv {
+    my ( $class, $option_pairs ) = @_;
+
+    my %cli_params;
+    my @spec =
+      map { $_ => \$cli_params{ $option_pairs->{$_} } } keys(%$option_pairs);
+    if ( !Getopt::Long::GetOptions(@spec) ) {
+        $class->_cli_usage();
+    }
+    %cli_params = slice_def( \%cli_params, keys(%cli_params) );
+    return %cli_params;
+}
+
+sub _cli_option_pairs {
+    return (
+        'h|help'                 => 'help',
+        'v|verbose'              => 'verbose',
+        'q|quiet'                => 'quiet',
+        'k|action=s'             => 'action',
+        'bind-addr=s'            => 'bind_addr',
+        'error-log=s'            => 'error_log',
+        'log-dir=s'              => 'log_dir',
+        'name=s'                 => 'name',
+        'pid-file=s'             => 'pid_file',
+        'port=s'                 => 'port',
+        'd|server-root=s'        => 'server_root',
+        'use-sudo=s'             => 'use_sudo',
+        'wait-for-status-secs=s' => 'wait_for_status_secs',
+    );
+}
+
 sub _setup_cli_logging {
     my ($self) = @_;
 
@@ -449,7 +469,8 @@ sub _perform_cli_action {
         $self->_cli_usage(
             sprintf(
                 "invalid action '%s' - must be one of %s",
-                $action, $self->valid_cli_actions_as_string
+                $action,
+                join( ", ", ( map { "'$_'" } $self->valid_cli_actions ) )
             )
         );
     }
@@ -459,12 +480,10 @@ sub _perform_cli_action {
 }
 
 sub _cli_usage {
-    my ( $self, $msg ) = @_;
+    my ( $class, $msg ) = @_;
 
-    print STDERR "$msg\n";
-    local @ARGV = '--help';
-    $self->new_with_options();
-    exit;    # should never get here, but just in case
+    $msg ||= "";
+    pod2usage( -msg => $msg, -verbose => 0, -exitval => 2 );
 }
 
 1;

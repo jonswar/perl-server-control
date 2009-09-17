@@ -1,40 +1,44 @@
 package Server::Control::Apache;
 use Apache::ConfigParser;
+use Capture::Tiny;
 use Cwd qw(realpath);
 use File::Spec::Functions qw(catdir catfile);
 use File::Which qw(which);
+use IO::Scalar;
 use Log::Any qw($log);
+use Module::Mask;
 use Moose;
+use Pod::Usage qw(pod2usage);
 use strict;
 use warnings;
 
 extends 'Server::Control';
 
-with 'MooseX::Getopt::Dashes';
-
 has 'conf_file' => (
-    traits      => ['Getopt'],
-    is          => 'ro',
-    isa         => 'Str',
-    lazy_build  => 1,
-    cmd_aliases => 'f'
+    is         => 'ro',
+    isa        => 'Str',
+    lazy_build => 1,
 );
 has 'httpd_binary' => (
-    traits      => ['Getopt'],
-    is          => 'ro',
-    isa         => 'Str',
-    lazy_build  => 1,
-    cmd_aliases => 'b'
+    is         => 'ro',
+    isa        => 'Str',
+    lazy_build => 1,
 );
-has 'parsed_config' =>
-  ( traits => ['NoGetopt'], is => 'ro', lazy_build => 1, init_arg => undef );
+has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
 has 'server_root' => (
-    traits      => ['Getopt'],
-    is          => 'ro',
-    isa         => 'Str',
-    lazy_build  => 1,
-    cmd_aliases => 'd'
+    is         => 'ro',
+    isa        => 'Str',
+    lazy_build => 1,
 );
+
+sub _cli_option_pairs {
+    my $class = shift;
+    return (
+        $class->SUPER::_cli_option_pairs,
+        'f|conf-file=s'    => 'conf_file',
+        'b|httpd-binary=s' => 'conf_file',
+    );
+}
 
 __PACKAGE__->meta->make_immutable();
 
@@ -171,6 +175,11 @@ sub run_httpd_command {
 
     my $cmd = "$httpd_binary -k $command -f $conf_file";
     $self->run_system_command($cmd);
+}
+
+sub _usage_format {
+    return
+      "Usage: apachectlp [-f conf_file] [-d server_root] [-b httpd_binary] [-v] -k start|stop|restart|ping";
 }
 
 1;
