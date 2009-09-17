@@ -7,6 +7,7 @@ use File::Which qw(which);
 use IO::Scalar;
 use Log::Any qw($log);
 use Moose;
+use MooseX::StrictConstructor;
 use Pod::Usage qw(pod2usage);
 use strict;
 use warnings;

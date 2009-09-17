@@ -1,6 +1,7 @@
 package Server::Control::NetServer;
 use Carp;
 use Moose;
+use MooseX::StrictConstructor;
 use strict;
 use warnings;
 

@@ -1,6 +1,7 @@
 package Server::Control::HTTPServerSimple;
 use Carp;
 use Moose;
+use MooseX::StrictConstructor;
 use Moose::Meta::Class;
 use Moose::Util::TypeConstraints;
 use strict;

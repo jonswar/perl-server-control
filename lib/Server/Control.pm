@@ -8,6 +8,7 @@ use IPC::System::Simple qw();
 use Log::Any qw($log);
 use Log::Dispatch::Screen;
 use Moose;
+use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
 use Pod::Usage;
 use Proc::ProcessTable;
