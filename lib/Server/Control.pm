@@ -68,12 +68,13 @@ sub BUILDARGS {
       || ( defined( $params{server_root} )
         && "$params{server_root}/serverctl.yml" );
     if ( defined $rc_file && -f $rc_file ) {
-        if (defined (my $rc_params = YAML::Any::LoadFile($rc_file))) {
+        if ( defined( my $rc_params = YAML::Any::LoadFile($rc_file) ) ) {
             die "expected hashref from rc_file '$rc_file', got '$rc_params'"
-                unless ref($rc_params) eq 'HASH';
+              unless ref($rc_params) eq 'HASH';
             %params = ( %$rc_params, %params );
-            $log->debugf("found rc file '%s' with these parameters: %s", $rc_file, $rc_params)
-                if $log->is_debug;
+            $log->debugf( "found rc file '%s' with these parameters: %s",
+                $rc_file, $rc_params )
+              if $log->is_debug;
         }
     }
 
@@ -357,7 +358,7 @@ sub new_with_options {
 
     # Start logging to stdout with appropriate log level
     #
-    $class->_setup_cli_logging(\%cli_params);
+    $class->_setup_cli_logging( \%cli_params );
 
     my %params = ( %passed_params, %cli_params );
     return $class->new(%params);
@@ -467,10 +468,12 @@ sub _cli_option_pairs {
 }
 
 sub _setup_cli_logging {
-    my ($self, $cli_params) = @_;
+    my ( $self, $cli_params ) = @_;
 
     my $log_level =
-      $cli_params->{verbose} ? 'debug' : $cli_params->{quiet} ? 'warning' : 'info';
+        $cli_params->{verbose} ? 'debug'
+      : $cli_params->{quiet}   ? 'warning'
+      :                          'info';
     my $dispatcher =
       Log::Dispatch->new( outputs =>
           [ [ 'Screen', stderr => 0, min_level => $log_level, newline => 1 ] ]
