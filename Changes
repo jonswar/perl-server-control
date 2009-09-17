@@ -5,6 +5,7 @@ Revision history for Server-Control
 0.08  Sep 17, 2009
 
 - ** Rename root_dir to server_root - just more intuitive for existing apache users
+- ** Rename run_command to run_system_command to avoid confusion with cli methods
 - ** Overhaul command-line processing. Rename handle_cmdline to handle_cli and make much
      more comprehensive; can remove all logic from scripts like apachectlp and easily
      modify behavior of CLI in subclass
