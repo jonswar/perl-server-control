@@ -27,6 +27,7 @@ requires 'IO::Socket'                  => 0;
 requires 'IPC::System::Simple'         => '1.18';
 requires 'List::MoreUtils'             => '0.13';
 requires 'Log::Any::Adapter::Dispatch' => '0.03';
+requires 'Log::Dispatch'               => '2.25';
 requires 'Moose'                       => '0.66';
 requires 'Pod::Usage'                  => 0;
 requires 'Proc::ProcessTable'          => '0.42';
