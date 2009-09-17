@@ -10,6 +10,7 @@ Revision history for Server-Control
      modify behavior of CLI in subclass
 - Allow optional serverctl.yml file containing constructor options
 - Add --quiet to CLI options to accompany --verbose
+- Use MooseX::StrictConstructor everywhere
 
 0.07  Sep 11, 2009
 
