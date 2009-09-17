@@ -365,10 +365,7 @@ sub new_with_options {
     # Start logging to stdout with appropriate log level
     #
     $class->_setup_cli_logging( \%cli_params );
-<<<<<<< HEAD
     delete( @cli_params{qw(quiet verbose)} );
-=======
->>>>>>> e35468570d2f5d9514d28471d1606ea2f7558750
 
     # Combine passed and command-line params, pass to constructor
     #
