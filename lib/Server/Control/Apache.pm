@@ -1,10 +1,8 @@
 package Server::Control::Apache;
 use Apache::ConfigParser;
-use Capture::Tiny;
 use Cwd qw(realpath);
 use File::Spec::Functions qw(catdir catfile);
 use File::Which qw(which);
-use IO::Scalar;
 use Log::Any qw($log);
 use Moose;
 use MooseX::StrictConstructor;
