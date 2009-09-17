@@ -51,18 +51,37 @@ Required options: -k, and either -d or -f.
  -d, --server-root   Specify the server root - will determine from configuration file if given
  -f, --conf-file     Specify a configuration file - defaults to conf/httpd.conf under server root
  -h, --help          Print help message
- -k, --action        Specify command - start, stop, restart, or ping
+ -k, --action        Specify action - start, stop, restart, or ping
  -v, --verbose       Show verbose output
 
-Server::Control needs the values below and usually gets them by parsing the
-Apache configuration file, but you may pass any of them if the parsing isn't
-working.
+C<Server::Control::Apache> needs the values below and usually gets them by
+parsing the Apache configuration file, but you may pass any of them if the
+parsing isn't working.
 
  --bind-addr
  --error-log
  --pid-file
  --port
  --use-sudo
+
+And in general, any constructor parameter to L<Server::Control|Server::Control>
+or C<Server::Control::Apache> can be passed here (replacing underscores with
+dashes), e.g.
+
+ --name
+ --serverctlrc
+ --wait-for-status-secs
+
+=head1 CONFIG FILE
+
+You may place options in a config file called serverctl.yml in the server root,
+e.g.
+
+    # This is my serverctl.yml
+    use_sudo: 1
+    wait_for_status-secs: 5
+
+You can also specify the path of the config file with --serverctlrc.
 
 =head1 AUTHOR
 
