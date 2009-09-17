@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.08  Sep 14, 2009
+0.08  Sep 17, 2009
 
 - ** Rename root_dir to server_root - just more intuitive for existing apache users
 - Add more functionality to handle_cmdline to simplify command-line scripts like apachectlp
