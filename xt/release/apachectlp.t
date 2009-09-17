@@ -12,7 +12,7 @@ use warnings;
 if ( !scalar( which('httpd') ) ) {
     plan( skip_all => 'no httpd in PATH' );
 }
-plan( tests => 13 );
+plan( tests => 14 );
 
 # How to pick this w/o possibly conflicting...
 my $port        = 15432;
@@ -64,10 +64,14 @@ eval {
     try( "--server-root $server_root -k stop", qr/stopped/, 'when running' );
     try( "--conf-file $conf_file -k ping", qr/not running/,
         'when not running' );
+    try(
+        "-f $conf_file -k ping --class Server::Control::Test::PoliteApache",
+        qr/is not running, sir/,
+        'when not running'
+    );
 
-
-    try_error( "-h", qr/usage:/i, '-h');
-    try_error( "--help", qr/usage:/i, '--help');
+    try_error( "-h",     qr/usage:/i, '-h' );
+    try_error( "--help", qr/usage:/i, '--help' );
 
     try_error( "-f $conf_file", qr/must specify -k|--action.*usage:/si );
     try_error( "-k start",      qr/no conf_file or server_root specified/si );

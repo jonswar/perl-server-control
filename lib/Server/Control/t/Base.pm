@@ -161,7 +161,7 @@ sub test_rc_file : Tests(6) {
     };
 
     {
-        write_file( $temp_dir2 . "/.serverctlrc", $rc_contents );
+        write_file( $temp_dir2 . "/serverctl.yml", $rc_contents );
         my $ctl = $self->create_ctl(
             $self->{port}, $temp_dir2,
             server_root => $temp_dir2,
@@ -171,8 +171,9 @@ sub test_rc_file : Tests(6) {
     }
 
     {
-        my ( $fh, $rc_file ) =
-          tempfile( 'name-XXXX', DIR => '/tmp', UNLINK => 1 );
+        my $temp_dir3 =
+          tempdir( 'Server-Control-XXXX', TMPDIR => 1, CLEANUP => 1 );
+        my $rc_file = "$temp_dir3/foo.yml";
         write_file( $rc_file, $rc_contents );
         my $ctl = $self->create_ctl(
             $self->{port}, $temp_dir2,

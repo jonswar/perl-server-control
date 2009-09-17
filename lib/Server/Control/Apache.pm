@@ -6,7 +6,6 @@ use File::Spec::Functions qw(catdir catfile);
 use File::Which qw(which);
 use IO::Scalar;
 use Log::Any qw($log);
-use Module::Mask;
 use Moose;
 use Pod::Usage qw(pod2usage);
 use strict;
@@ -177,11 +176,6 @@ sub run_httpd_command {
     $self->run_system_command($cmd);
 }
 
-sub _usage_format {
-    return
-      "Usage: apachectlp [-f conf_file] [-d server_root] [-b httpd_binary] [-v] -k start|stop|restart|ping";
-}
-
 1;
 
 __END__
@@ -211,8 +205,8 @@ Server::Control::Apache is a subclass of Server::Control for Apache httpd
 processes. It has the same basic function as apachectl, only with a richer
 feature set.
 
-This module has an associated binary, apachectlp(1), which you may want to use
-instead.
+This module has an associated binary, L<apachectlp|apachectlp>, which you may
+want to use instead.
 
 =head1 CONSTRUCTOR
 
