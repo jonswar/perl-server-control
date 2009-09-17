@@ -587,6 +587,8 @@ L<Server::Control::NetServer> - Net::Server server
 These will probably be moved into their own distributions once the
 implementation stabilizes.
 
+=for readme stop
+
 =head1 CONSTRUCTOR PARAMETERS
 
 You can pass the following common parameters to the constructor, or include
@@ -837,6 +839,8 @@ L</use_sudo>), logs the command, and throws runtime errors appropriately.
 
 =back
 
+=for readme continue
+
 =head1 RELATED MODULES
 
 =over
@@ -865,6 +869,10 @@ L<MooseX::Control|MooseX::Control>
 =head1 TO DO
 
 =over
+
+=item *
+
+Add 'refork' action, which kills all children of a forking server
 
 =item *
 

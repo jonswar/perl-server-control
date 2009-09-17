@@ -5,9 +5,11 @@ Revision history for Server-Control
 0.08  Sep 17, 2009
 
 - ** Rename root_dir to server_root - just more intuitive for existing apache users
-- Add more functionality to handle_cmdline to simplify command-line scripts like apachectlp
-- Allow optional .serverctlrc file containing constructor options
-- Add --quiet to accompany --verbose
+- ** Overhaul command-line processing. Rename handle_cmdline to handle_cli and make much
+     more comprehensive; can remove all logic from scripts like apachectlp and easily
+     modify behavior of CLI in subclass
+- Allow optional serverctl.yml file containing constructor options
+- Add --quiet to CLI options to accompany --verbose
 
 0.07  Sep 11, 2009
 
