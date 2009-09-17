@@ -39,6 +39,7 @@ recommends 'Unix::Lsof'                => '0.0.9';
 install_script 'bin/apachectlp';
 
 no_index directory => 'lib/Server/Control/t';
+no_index directory => 'lib/Server/Control/Test';
 no_index package => 'Server::Control::Util';
 
 extra_tests;
