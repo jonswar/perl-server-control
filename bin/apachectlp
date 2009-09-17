@@ -50,7 +50,7 @@ Required options: -k, and either -d or -f.
  -b, --httpd-binary  Specify an httpd binary - defaults to the first httpd in user's PATH
      --class         Specify a customized class to use instead of Server::Control::Apache
  -d, --server-root   Specify the server root - will determine from configuration file if given
- -f, --conf-file     Specify a configuration file - defaults to conf/httpd.conf under server root
+ -f, --conf-file     Specify the httpd conf file - defaults to conf/httpd.conf under server root
  -h, --help          Print help message
  -k, --action        Specify action - start, stop, restart, or ping
  -v, --verbose       Show verbose output
@@ -73,16 +73,16 @@ dashes), e.g.
  --serverctlrc
  --wait-for-status-secs
 
-=head1 CONFIG FILE
+=head1 RC FILE
 
-You may place options in a config file called serverctl.yml in the server root,
+You may place options in an rc file called serverctl.yml in the server root,
 e.g.
 
     # This is my serverctl.yml
     use_sudo: 1
     wait_for_status-secs: 5
 
-You can also specify the path of the config file with --serverctlrc.
+You can also specify the path of the rc file with --serverctlrc.
 
 =head1 AUTHOR
 
