@@ -353,13 +353,18 @@ sub handle_cli {
 sub new_with_options {
     my ( $class, %passed_params ) = @_;
 
+    # Get params from command-line
+    #
     my %option_pairs = $class->_cli_option_pairs();
     my %cli_params   = $class->_cli_parse_argv( \%option_pairs );
 
     # Start logging to stdout with appropriate log level
     #
     $class->_setup_cli_logging(\%cli_params);
+    delete(@cli_params{quiet verbose});
 
+    # Combine passed and command-line params, pass to constructor
+    #
     my %params = ( %passed_params, %cli_params );
     return $class->new(%params);
 }
