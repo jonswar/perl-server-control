@@ -42,8 +42,6 @@ has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int',  default    => 10 );
 # These are only for command-line. Would like to prevent their use from regular new()...
 #
 has 'action' => ( is => 'ro', isa => 'Str' );
-has 'quiet' => ( is => 'ro' );
-has 'verbose' => ( is => 'ro' );
 
 __PACKAGE__->meta->make_immutable();
 
@@ -70,10 +68,13 @@ sub BUILDARGS {
       || ( defined( $params{server_root} )
         && "$params{server_root}/serverctl.yml" );
     if ( defined $rc_file && -f $rc_file ) {
-        my $rc_params = YAML::Any::LoadFile($rc_file);
-        die "expected hashref from rc_file '$rc_file', got '$rc_params'"
-          unless ref($rc_params) eq 'HASH';
-        %params = ( %$rc_params, %params );
+        if (defined (my $rc_params = YAML::Any::LoadFile($rc_file))) {
+            die "expected hashref from rc_file '$rc_file', got '$rc_params'"
+                unless ref($rc_params) eq 'HASH';
+            %params = ( %$rc_params, %params );
+            $log->debugf("found rc file '%s' with these parameters: %s", $rc_file, $rc_params)
+                if $log->is_debug;
+        }
     }
 
     return $class->SUPER::BUILDARGS(%params);
@@ -339,24 +340,24 @@ sub handle_cli {
     #
     my $self = $class->new_with_options(@_);
 
-    # Start logging to stdout
-    #
-    $self->_setup_cli_logging();
-
     # Validate and perform specified action
     #
     $self->_perform_cli_action();
 }
 
 # This method and its helpers are modelled after MooseX::Getopt, which
-# unfortunately I found too flaky to use right now.  If and when it
-# improves, we can hopefully drop it in as a replacement.
+# unfortunately I found both too flaky and not completely suited to my needs.
+# If and when things improve, we can hopefully drop it in as a replacement.
 #
 sub new_with_options {
     my ( $class, %passed_params ) = @_;
 
     my %option_pairs = $class->_cli_option_pairs();
     my %cli_params   = $class->_cli_parse_argv( \%option_pairs );
+
+    # Start logging to stdout with appropriate log level
+    #
+    $class->_setup_cli_logging(\%cli_params);
 
     my %params = ( %passed_params, %cli_params );
     return $class->new(%params);
@@ -466,10 +467,10 @@ sub _cli_option_pairs {
 }
 
 sub _setup_cli_logging {
-    my ($self) = @_;
+    my ($self, $cli_params) = @_;
 
     my $log_level =
-      $self->verbose ? 'debug' : $self->quiet ? 'warning' : 'info';
+      $cli_params->{verbose} ? 'debug' : $cli_params->{quiet} ? 'warning' : 'info';
     my $dispatcher =
       Log::Dispatch->new( outputs =>
           [ [ 'Screen', stderr => 0, min_level => $log_level, newline => 1 ] ]
