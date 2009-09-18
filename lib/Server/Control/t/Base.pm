@@ -148,8 +148,8 @@ sub test_corrupt_pid_file : Test(3) {
 sub test_rc_file : Tests(6) {
     my $self = shift;
 
-    my $rc_contents = join( "\n", "bind_addr: 1.2.3.4", "name: foo",
-        "wait-for-status-secs: 7" );
+    my $rc_contents =
+      "bind_addr: 1.2.3.4\nname: foo\nwait-for-status-secs: 7\n";
     my $temp_dir2 =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
 
