@@ -2,7 +2,10 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.09  Sep 17, 2009
+0.09  Sep 18, 2009
+
+- Add Hash::MoreUtils to dependencies
+- Fix rc file test (add terminating newline to yml)
 
 0.08  Sep 17, 2009
 
