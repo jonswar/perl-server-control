@@ -2,6 +2,8 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
+0.10  Sep 18, 2009
+
 0.09  Sep 18, 2009
 
 - Add Hash::MoreUtils to dependencies
