@@ -331,14 +331,20 @@ sub valid_cli_actions {
 sub handle_cli {
     my $class = shift;
 
-    # Allow caller to specify alternate class with --class
+    # Allow caller to specify subclass with -c|--class and include paths with -I
     #
-    my $alternate_class;
-    $class->_cli_get_options( [ 'class=s' => \$alternate_class ],
-        ['pass_through'] );
-    if ( defined $alternate_class ) {
-        Class::MOP::load_class($alternate_class);
-        return $alternate_class->handle_cli();
+    my ( $subclass, @includes );
+    $class->_cli_get_options(
+        [ 'c|class=s' => \$subclass, 'I=s' => \@includes ],
+        [ 'pass_through', 'no_ignore_case' ] );
+    unshift( @INC, @includes );
+    if ( defined $subclass ) {
+        my $full_subclass =
+            substr( $subclass, 0, 1 ) eq '+'
+          ? substr( $subclass, 1 )
+          : "Server::Control::$subclass";
+        Class::MOP::load_class($full_subclass);
+        return $full_subclass->handle_cli();
     }
 
     # Create object based on @ARGV options
@@ -440,11 +446,12 @@ sub _cli_parse_argv {
     my %cli_params;
     my @spec =
       map { $_ => \$cli_params{ $option_pairs->{$_} } } keys(%$option_pairs);
-    $class->_cli_get_options( \@spec, [] );
+    $class->_cli_get_options( \@spec, ['no_ignore_case'] );
     %cli_params = slice_def( \%cli_params, keys(%cli_params) );
 
     $class->_cli_usage( "", 0 ) if !%cli_params;
     $class->_cli_usage( "", 1 ) if $cli_params{help};
+    $class->_cli_usage("must specify -c|--class") if $class eq __PACKAGE__;
 
     return %cli_params;
 }
@@ -706,8 +713,9 @@ Log the server's status.
 
 =item handle_cli (constructor_params)
 
-Helper method to implement a command-line script like apachectl, including
-processing options from C<@ARGV>. In general the script looks like this:
+Helper method to implement a CLI (command-line interface) like apachectl. This
+is used by two scripts that come with this distribution, L<apachectlp> and
+L<serverctlp>. In general the usage looks like this:
 
    #!/usr/bin/perl -w
    use strict;
@@ -715,42 +723,38 @@ processing options from C<@ARGV>. In general the script looks like this:
 
    Server::Control::Foo->handle_cli();
 
-This will implement a script that
+C<handle_cli> will process the following options from C<@ARGV>:
 
 =over
 
 =item *
 
-Parses options --bind-addr, --error-log, --server-root, etc. to be fed into
-C<Server::Control::MyServer> constructor. There is one option for each
-constructor parameter, with underscores replaced with dashes.
+-v|--verbose - set log level to C<debug>
 
 =item *
 
-Parses options -v|--verbose and -q|--quiet by setting the log level to C<debug>
-and C<warning> respectively
+-q|--quiet - set log level to C<warning> respectively
 
 =item *
 
-Parses option --class by forwarding the call from C<Server::Control::Foo> to a
-different class.
+-c|--class - forwards the call to the specified classname. The classname is
+prefixed with "Server::Control::" unless it begins with a "+".
 
 =item *
 
-Parses option -h|--help in the usual way
+-h|--help - prints a help message using L<Pod::Usage|Pod::Usage>
 
 =item *
 
-Gets an action like 'start' from -k|--action, and calls this on the
-C<Server::Control::MyServer> object
+-k|--action - calls this on the C<Server::Control::MyServer> object (required)
 
 =item *
 
-Sends any log output to STDOUT
+Any constructor parameter accepted by C<Server::Control> or the specific
+subclass, with underscores replaced by dashes - e.g. --bind-addr,
+--wait-for-status-secs
 
 =back
-
-See L<apachectlp> for an example.
 
 Any parameters passed to C<handle_cli> will be passed to the C<Server::Control>
 constructor, but may be overriden by C<@ARGV> options.
@@ -759,6 +763,8 @@ In general, any customization to the default command-line handling is best done
 in your C<Server::Control> subclass rather than the script itself. For example,
 see L<Server::Control::Apache|Server::Control::Apache> and its overriding of
 C<_cli_option_pairs>.
+
+Log output is automatically diverted to STDOUT, as would be expected for a CLI.
 
 =back
 

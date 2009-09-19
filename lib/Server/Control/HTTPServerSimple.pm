@@ -9,14 +9,8 @@ use warnings;
 
 extends 'Server::Control';
 
-subtype 'Server::Control::HTTPServerSimple::WithNetServer' => as 'Str' =>
-  where { $_->can('net_server') && defined( $_->net_server() ) } => message {
-    'Must be an HTTP::Server::Simple subclass with a net_server defined';
-  };
-
 has 'server_class' => (
     is       => 'ro',
-    isa      => 'Server::Control::HTTPServerSimple::WithNetServer',
     required => 1
 );
 has 'server' => ( is => 'ro', lazy_build => 1 );
@@ -48,8 +42,15 @@ sub _build_error_log {
 sub _build_server {
     my $self = shift;
 
-    Class::MOP::load_class( $self->server_class );
-    return $self->server_class->new( $self->port );
+    my $server_class = $self->server_class;
+    Class::MOP::load_class($server_class);
+    unless ( $server_class->can('net_server')
+        && defined( $server_class->net_server() ) )
+    {
+        die
+          "bad server_class '$server_class' - must be an HTTP::Server::Simple subclass with a net_server defined";
+    }
+    return $server_class->new( $self->port );
 }
 
 sub do_start {

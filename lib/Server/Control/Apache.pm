@@ -12,7 +12,7 @@ use warnings;
 
 extends 'Server::Control';
 
-has 'conf_file'     => ( is => 'ro', lazy_build => 1 );
+has 'conf_file' => ( is => 'ro', lazy_build => 1, required => 1 );
 has 'httpd_binary'  => ( is => 'ro', lazy_build => 1 );
 has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
 has 'server_root'   => ( is => 'ro', lazy_build => 1, );
