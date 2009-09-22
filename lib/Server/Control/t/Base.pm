@@ -56,10 +56,16 @@ sub test_setup : Tests(setup) {
     }
     $self->{temp_dir} =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
-    $self->{log} = Test::Log::Dispatch->new( min_level => 'info' );
-    Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
+    $self->setup_test_logger('info');
     $self->{ctl} = $self->create_ctl( $self->{port}, $self->{temp_dir} );
     push( @ctls, $self->{ctl} );
+}
+
+sub setup_test_logger {
+    my ( $self, $level ) = @_;
+
+    $self->{log} = Test::Log::Dispatch->new( min_level => $level );
+    Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
 }
 
 sub test_simple : Tests(8) {

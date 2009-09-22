@@ -65,7 +65,7 @@ eval {
     try( "--conf-file $conf_file -k ping", qr/not running/,
         'when not running' );
     try(
-        "-f $conf_file -k ping --class Server::Control::Test::PoliteApache",
+        "-f $conf_file -k ping --class +Server::Control::Test::PoliteApache",
         qr/is not running, sir/,
         'when not running'
     );

@@ -178,23 +178,8 @@ sub start {
 sub stop {
     my ($self) = @_;
 
-    my $proc = $self->is_running();
-    unless ($proc) {
-        $log->warn( $self->status_as_string() );
-        return;
-    }
-
-    my ( $uid, $eid ) = ( $<, $> );
-    if ( ( $eid || $uid ) && $proc->uid != $uid && !$self->use_sudo() ) {
-        $log->infof(
-            "warning: process %d is owned by uid %d ('%s'), different than current user %d ('%s'); may not be able to stop server",
-            $proc->pid,
-            $proc->uid,
-            scalar( getpwuid( $proc->uid ) ),
-            $uid,
-            scalar( getpwuid($uid) )
-        );
-    }
+    my $proc = $self->_ensure_is_running() or return;
+    $self->_warn_if_different_user($proc);
 
     eval { $self->do_stop($proc) };
     if ( my $err = $@ ) {
@@ -514,7 +499,8 @@ sub _perform_cli_action {
         );
     }
     else {
-        $self->$action();
+        ( my $action_method = $action ) =~ s/\-/_/g;
+        $self->$action_method();
     }
 }
 
@@ -524,6 +510,32 @@ sub _cli_usage {
     $msg     ||= "";
     $verbose ||= 0;
     pod2usage( -msg => $msg, -verbose => $verbose, -exitval => 2 );
+}
+
+sub _ensure_is_running {
+    my ($self) = @_;
+
+    my $proc = $self->is_running();
+    unless ($proc) {
+        $log->warn( $self->status_as_string() );
+    }
+    return $proc;
+}
+
+sub _warn_if_different_user {
+    my ( $self, $proc ) = @_;
+
+    my ( $uid, $eid ) = ( $<, $> );
+    if ( ( $eid || $uid ) && $proc->uid != $uid && !$self->use_sudo() ) {
+        $log->warn(
+            "warning: process %d is owned by uid %d ('%s'), different than current user %d ('%s'); may not be able to stop server",
+            $proc->pid,
+            $proc->uid,
+            scalar( getpwuid( $proc->uid ) ),
+            $uid,
+            scalar( getpwuid($uid) )
+        );
+    }
 }
 
 1;

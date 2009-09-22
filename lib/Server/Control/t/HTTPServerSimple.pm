@@ -38,13 +38,14 @@ sub test_bad_server_class : Test(2) {
     );
     throws_ok {
         Server::Control::HTTPServerSimple->new(
-            server_class => $bad_server_class->name );
+            server_class => $bad_server_class->name )->server;
     }
-    qr/Must be an HTTP::Server::Simple subclass with a net_server defined/;
+    qr/must be an HTTP::Server::Simple subclass with a net_server defined/;
     throws_ok {
-        Server::Control::HTTPServerSimple->new( server_class => 'bleah' );
+        Server::Control::HTTPServerSimple->new( server_class => 'bleah' )
+          ->server;
     }
-    qr/Must be an HTTP::Server::Simple subclass with a net_server defined/;
+    qr/Can't locate bleah/;
 }
 
 sub test_missing_params : Test(2) {
