@@ -6,6 +6,8 @@ Revision history for Server-Control
 
 - Add graceful and graceful-stop to apachectlp and Server::Control::Apache
 - Add bin/serverctlp, a generic version of apachectlp with required --class
+- Add --no-parse-config to apachectlp
+- Fix -b option in apachectlp
 - Add -I to CLI options
 
 0.09  Sep 18, 2009
