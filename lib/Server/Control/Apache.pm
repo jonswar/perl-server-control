@@ -286,11 +286,11 @@ L<Server::Control|Server::Control>:
 =item graceful
 
 Gracefully restart the server - see
-http://httpd.apache.org/docs/2.0/stopping.html
+http://httpd.apache.org/docs/2.2/stopping.html
 
 =item graceful-stop
 
-Gracefully stop the server - see http://httpd.apache.org/docs/2.0/stopping.html
+Gracefully stop the server - see http://httpd.apache.org/docs/2.2/stopping.html
 
 =back
 
