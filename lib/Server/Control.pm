@@ -565,6 +565,9 @@ C<Server::Control> allows you to control servers in the spirit of apachectl,
 where a server is any background process which listens to a port and has a pid
 file. It is designed to be subclassed for different types of servers.
 
+The original motivation was to eliminate all those little annoyances that can
+occur when starting and stopping a server doesn't quite go right.
+
 =head1 FEATURES
 
 =over
