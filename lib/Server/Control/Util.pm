@@ -13,6 +13,7 @@ our @EXPORT_OK = qw(
   something_is_listening_msg
   kill_my_children
   kill_children
+  get_child_pids
 );
 
 eval { require Unix::Lsof };
@@ -77,7 +78,7 @@ sub something_is_listening_msg {
         $qualifier, $bind_addr, $port );
 }
 
-# Kill all children of this process with TERM - for testing purposes.
+# Kill all children of this process with TERM - specifically for testing purposes.
 #
 sub kill_my_children {
     my @child_pids = kill_children($$);
@@ -90,12 +91,21 @@ sub kill_my_children {
 #
 sub kill_children {
     my ($pid) = @_;
-    my $pt = new Proc::ProcessTable;
-    my @child_pids = Proc::Killfam::get_pids( $pt->table, $$ );
+
+    my @child_pids = get_child_pids($pid);
     if (@child_pids) {
         Proc::Killfam::killfam( 15, @child_pids );
     }
     return @child_pids;
+}
+
+# Return the child pids of process $pid.
+#
+sub get_child_pids {
+    my ($pid) = @_;
+
+    my $pt = new Proc::ProcessTable;
+    return Proc::Killfam::get_pids( $pt->table, $pid );
 }
 
 1;
