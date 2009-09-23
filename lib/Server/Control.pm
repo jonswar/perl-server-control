@@ -588,7 +588,7 @@ Uses sudo by default when using restricted (< 1024) port
 
 =item *
 
-With Unix::Lsof installed, reports what is listening to a port when it is busy
+Reports what is listening to a port when it is busy (with Unix::Lsof)
 
 =back
 
@@ -916,6 +916,10 @@ to Hearst management for agreeing to this open source release.
 =head1 AUTHOR
 
 Jonathan Swartz
+
+=head1 SEE ALSO
+
+L<serverctlp|serverctlp>, L<Server::Control::Apache|Server::Control::Apache>
 
 =head1 COPYRIGHT & LICENSE
 
