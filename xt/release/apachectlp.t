@@ -12,7 +12,7 @@ use warnings;
 if ( !scalar( which('httpd') ) ) {
     plan( skip_all => 'no httpd in PATH' );
 }
-plan( tests => 16 );
+plan( tests => 17 );
 
 # How to pick this w/o possibly conflicting...
 my $port        = 15432;
@@ -76,6 +76,7 @@ eval {
     try_error( "-d /does/not/exist -k ping", qr{no such server root '/does/not/exist'} );
     try_error( "-f /does/not/exist -k ping", qr{no such conf file '/does/not/exist'} );
     try_error( "-f $conf_file", qr/must specify -k|--action.*usage:/si );
+    try_error( "-f $conf_file -k ping --no-parse-config", qr/no port specified/si );
     try_error( "-k start",      qr/must specify one of -d or -f.*usage/si );
     try_error( "-k bleah -f $conf_file",
         qr/invalid action 'bleah' - must be one of/s );
