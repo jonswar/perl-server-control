@@ -13,7 +13,8 @@ use Moose::Util::TypeConstraints;
 use Pod::Usage;
 use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
-use Server::Control::Util qw(is_port_active something_is_listening_msg);
+use Server::Control::Util
+  qw(is_port_active kill_children something_is_listening_msg);
 use YAML::Any;
 use strict;
 use warnings;
@@ -204,6 +205,15 @@ sub restart {
     else {
         $self->start();
     }
+}
+
+sub refork {
+    my ($self) = @_;
+
+    my $proc = $self->_ensure_is_running() or return;
+    my @child_pids = kill_children( $proc->pid );
+    $log->debugf( "sent TERM to children of pid %d (%s)",
+        $proc->pid, @child_pids );
 }
 
 sub ping {
@@ -715,6 +725,14 @@ Stop the server. Calls L</do_stop> internally.
 =item restart
 
 Restart the server (by stopping it, then starting it).
+
+=item refork
+
+Send a C<TERM> signal to the child processes of the server's main process. This
+will force forking servers, such as C<Apache> and C<Net::Server::Prefork>, to
+fork new children. This can serve as a cheap restart in a development
+environment, if the resources you want to refresh are being loaded in the child
+rather than the parent.
 
 =item ping
 

@@ -9,7 +9,7 @@ use warnings;
 my $test_server_class = Moose::Meta::Class->create_anon_class(
     superclasses => ['HTTP::Server::Simple'],
     methods      => {
-        net_server => sub { 'Net::Server::Fork' }
+        net_server => sub { 'Net::Server::PreForkSimple' }
     },
 );
 
@@ -19,11 +19,12 @@ sub create_ctl {
     return Server::Control::HTTPServerSimple->new(
         server_class      => $test_server_class->name,
         net_server_params => {
-            port     => $port,
-            pid_file => $temp_dir . "/server.pid",
-            log_file => $temp_dir . "/server.log",
-            user     => geteuid(),
-            group    => getegid()
+            max_servers => 2,
+            port        => $port,
+            pid_file    => $temp_dir . "/server.pid",
+            log_file    => $temp_dir . "/server.log",
+            user        => geteuid(),
+            group       => getegid()
         },
         %extra_params
     );
