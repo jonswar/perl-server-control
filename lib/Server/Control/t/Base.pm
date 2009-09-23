@@ -70,35 +70,50 @@ sub setup_test_logger {
     Log::Any->set_adapter( 'Dispatch', dispatcher => $self->{log} );
 }
 
-sub test_simple : Tests(8) {
+sub test_simple : Tests(12) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
     my $port = $self->{port};
 
     ok( !$ctl->is_running(), "not running" );
-    $ctl->stop();
+    ok( !$ctl->stop() );
     $log->contains_only_ok( qr/server '.*' is not running/,
         "stop: is not running" );
 
-    $ctl->start();
+    ok( $ctl->start() );
     $log->contains_ok(qr/waiting for server start/);
     $log->contains_only_ok(qr/is now running.* and listening to port $port/);
     ok( $ctl->is_running(), "is running" );
-    $ctl->start();
+    ok( !$ctl->start() );
     $log->contains_only_ok( qr/server '.*' is already running/,
         "start: already running" );
 
-    $ctl->stop();
+    ok( $ctl->stop() );
     $log->contains_ok(qr/stopped/);
     ok( !$ctl->is_running(), "not running" );
 }
 
-sub test_refork : Tests(100) {
+sub test_restart : Tests(8) {
+    my $self = shift;
+    my $ctl  = $self->{ctl};
+    my $log  = $self->{log};
+
+    ok( !$ctl->is_running(), "not running" );
+    ok( !$ctl->restart() );
+    $log->contains_ok(qr/will not attempt start/);
+    ok( $ctl->start() );
+    ok( $ctl->is_running(), "is running" );
+    ok( $ctl->restart() );
+    ok( $ctl->is_running(), "is still running" );
+    ok( $ctl->stop() );
+}
+
+sub test_refork : Tests(7) {
     my $self = shift;
     my $ctl  = $self->{ctl};
 
-    $ctl->start();
+    ok( $ctl->start() );
     my $proc = $ctl->is_running();
     ok( $proc, "is running" );
 
@@ -111,7 +126,7 @@ sub test_refork : Tests(100) {
     my %in_pids = map { ( $_, 1 ) } @pids;
     ok( !grep { $in_pids{$_} } @pids2, "none of pids2 are in pids" );
 
-    $ctl->stop();
+    ok( $ctl->stop() );
     ok( !$ctl->is_running(), "not running" );
 }
 
@@ -125,7 +140,7 @@ sub wait_for_child_pids {
     return @child_pids;
 }
 
-sub test_port_busy : Tests(3) {
+sub test_port_busy : Tests(6) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
@@ -135,19 +150,19 @@ sub test_port_busy : Tests(3) {
     my $temp_dir2 =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
     my $ctl2 = $self->create_net_server_ctl( $port, $temp_dir2 );
-    $ctl2->start();
+    ok( $ctl2->start() );
 
     ok( !$ctl->is_running(),  "not running" );
     ok( $ctl->is_listening(), "listening" );
-    $ctl->start();
+    ok( !$ctl->start() );
     $log->contains_ok(
         qr/pid file '.*' does not exist, but something.*is listening to localhost:$port/
     );
 
-    $ctl2->stop();
+    ok( $ctl2->stop() );
 }
 
-sub test_wrong_port : Tests(7) {
+sub test_wrong_port : Tests(8) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
@@ -157,7 +172,7 @@ sub test_wrong_port : Tests(7) {
     my $new_port = $port + 1;
     $ctl->{port}                = $new_port;
     $ctl->{wait_for_start_secs} = 1;
-    $ctl->start();
+    ok( !$ctl->start() );
     $log->contains_ok(qr/waiting for server start/);
     $log->contains_ok(
         qr/after .*, server .* is running \(pid .*\), but not listening to port $new_port/
@@ -165,23 +180,23 @@ sub test_wrong_port : Tests(7) {
     ok( $ctl->is_running(),    "running" );
     ok( !$ctl->is_listening(), "not listening" );
 
-    $ctl->stop();
+    ok( $ctl->stop() );
     $log->contains_ok(qr/stopped/);
     ok( !$ctl->is_running(), "not running" );
 }
 
-sub test_corrupt_pid_file : Test(3) {
+sub test_corrupt_pid_file : Test(5) {
     my $self     = shift;
     my $ctl      = $self->{ctl};
     my $log      = $self->{log};
     my $pid_file = $ctl->pid_file;
 
     write_file( $pid_file, "blah" );
-    $ctl->start();
+    ok( $ctl->start() );
     $log->contains_ok(qr/pid file '.*' does not contain a valid process id/);
     $log->contains_ok(qr/deleting bogus pid file/);
     ok( $ctl->is_running(), "is running" );
-    $ctl->stop();
+    ok( $ctl->stop() );
 }
 
 sub test_rc_file : Tests(6) {

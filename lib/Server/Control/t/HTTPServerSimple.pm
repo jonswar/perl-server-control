@@ -68,7 +68,7 @@ sub test_missing_params : Test(2) {
     qr/port must be passed/;
 }
 
-sub test_wrong_port : Tests(6) {
+sub test_wrong_port : Tests(8) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     $ctl->server;    # create server object with old port

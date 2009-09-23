@@ -21,6 +21,11 @@ use warnings;
 
 our $VERSION = '0.10';
 
+# Gives us new_with_traits
+#
+with 'MooseX::Traits';
+has '+_trait_namespace' => ( default => 'Server::Control::Plugin' );
+
 #
 # ATTRIBUTES
 #
@@ -44,6 +49,12 @@ has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int',  default    => 10 );
 # These are only for command-line. Would like to prevent their use from regular new()...
 #
 has 'action' => ( is => 'ro', isa => 'Str' );
+
+foreach
+  my $method (qw(successful_start successful_stop failed_start failed_stop))
+{
+    __PACKAGE__->meta->add_method( $method => sub { } );
+}
 
 __PACKAGE__->meta->make_immutable();
 
@@ -145,7 +156,6 @@ sub start {
         ( my $status = $self->status_as_string() ) =~
           s/running/already running/;
         $log->warnf($status);
-        return;
     }
     elsif ( $self->is_listening() ) {
         $log->warnf(
@@ -154,56 +164,63 @@ sub start {
             $self->pid_file(),
             something_is_listening_msg( $self->port, $self->bind_addr )
         );
-        return;
-    }
-
-    my $error_size_start = $self->_start_error_log_watch();
-
-    eval { $self->do_start() };
-    if ( my $err = $@ ) {
-        $log->errorf( "error while trying to start %s: %s",
-            $self->description(), $err );
-        $self->_report_error_log_output($error_size_start);
-        return;
-    }
-
-    if ( $self->_wait_for_status( ACTIVE, 'start' ) ) {
-        ( my $status = $self->status_as_string() ) =~ s/running/now running/;
-        $log->info($status);
     }
     else {
-        $self->_report_error_log_output($error_size_start);
+        my $error_size_start = $self->_start_error_log_watch();
+
+        eval { $self->do_start() };
+        if ( my $err = $@ ) {
+            $log->errorf( "error while trying to start %s: %s",
+                $self->description(), $err );
+            $self->_report_error_log_output($error_size_start);
+        }
+        else {
+            if ( $self->_wait_for_status( ACTIVE, 'start' ) ) {
+                ( my $status = $self->status_as_string() ) =~
+                  s/running/now running/;
+                $log->info($status);
+                $self->successful_start();
+                return 1;
+            }
+            else {
+                $self->_report_error_log_output($error_size_start);
+            }
+        }
     }
+    $self->failed_start();
+    return 0;
 }
 
 sub stop {
     my ($self) = @_;
 
-    my $proc = $self->_ensure_is_running() or return;
+    my $proc = $self->_ensure_is_running() or return 0;
     $self->_warn_if_different_user($proc);
 
     eval { $self->do_stop($proc) };
     if ( my $err = $@ ) {
         $log->errorf( "error while trying to stop %s: %s",
             $self->description(), $err );
-        return;
     }
-
-    if ( $self->_wait_for_status( INACTIVE, 'stop' ) ) {
+    elsif ( $self->_wait_for_status( INACTIVE, 'stop' ) ) {
         $log->infof( "%s has stopped", $self->description() );
+        $self->successful_stop();
+        return 1;
     }
+    $self->failed_stop();
+    return 0;
 }
 
 sub restart {
     my ($self) = @_;
 
-    $self->stop();
-    if ( $self->is_running() ) {
-        $log->infof( "could not stop %s, will not attempt start",
-            $self->description() );
+    if ( $self->stop() ) {
+        return $self->start();
     }
     else {
-        $self->start();
+        $log->infof( "could not stop %s, will not attempt start",
+            $self->description() );
+        return 0;
     }
 }
 
@@ -213,7 +230,9 @@ sub refork {
     my $proc = $self->_ensure_is_running() or return;
     my @child_pids = kill_children( $proc->pid );
     $log->debugf( "sent TERM to children of pid %d (%s)",
-        $proc->pid, @child_pids );
+        $proc->pid, join( ", ", @child_pids ) )
+      if $log->is_debug;
+    return @child_pids;
 }
 
 sub ping {
@@ -716,15 +735,20 @@ Defaults to 10.
 
 =item start
 
-Start the server. Calls L</do_start> internally.
+Start the server. Calls L</do_start> internally. Returns 1 if the server
+started successfully, 0 if not (e.g. it was already running, or there was an
+error starting it).
 
 =item stop
 
-Stop the server. Calls L</do_stop> internally.
+Stop the server. Calls L</do_stop> internally. Returns 1 if the server stopped
+successfully, 0 if not (e.g. it was already stopped, or there was an error
+stopping it).
 
 =item restart
 
-Restart the server (by stopping it, then starting it).
+Restart the server (by stopping it, then starting it). Returns 1 if the server
+both stopped and started succesfully, 0 if not.
 
 =item refork
 
@@ -733,6 +757,8 @@ will force forking servers, such as C<Apache> and C<Net::Server::Prefork>, to
 fork new children. This can serve as a cheap restart in a development
 environment, if the resources you want to refresh are being loaded in the child
 rather than the parent.
+
+Returns the list of child pids that were sent a C<TERM>.
 
 =item ping
 
@@ -886,6 +912,72 @@ Runs the specified I<$cmd> on the command line. Adds sudo if necessary (see
 L</use_sudo>), logs the command, and throws runtime errors appropriately.
 
 =back
+
+=head1 PLUGINS
+
+Because C<Server::Control> uses C<Moose>, it is easy to define plugins that
+modify its methods. If a plugin is meant for public consumption, we recommend
+that it be implemented as a role and named C<Server::Control::Plugin::*>.
+
+In addition to the methods documented above, the following empty hook methods
+are called for plugin convenience:
+
+=over
+
+=item *
+
+successful_start - called when a start() succeeds
+
+=item *
+
+failed_start - called when a start() fails
+
+=item *
+
+successful_stop - called when a stop() succeeds
+
+=item *
+
+failed_stop - called when a stop() fails
+
+=back
+
+C<Server::Control> uses the L<MooseX::Traits|MooseX::Traits> role, so you can
+call it with C<new_with_traits()>. The default trait_namespace is
+C<Server::Control::Plugin>.
+
+For example, here is a role that sends an email whenever a server is
+successfully started or stopped:
+
+   package Server::Control::Plugin::EmailOnStatusChange;
+   use Moose::Role;
+   
+   has 'email_status_to' => ( is => 'ro', isa => 'Str', required => 1 );
+   
+   after 'successful_start' => sub {
+       shift->send_email("server started");
+   };
+   after 'successful_stop' => sub {
+       shift->send_email("server stopped");
+   };
+   
+   __PACKAGE__->meta->make_immutable();
+   
+   sub send_email {
+       my ( $self, $subject ) = @_;
+   
+       ...;
+   }
+   
+   1;
+
+and here's how you'd use it:
+
+   my $apache = Server::Control::Apache->new_with_traits(
+       traits          => ['EmailOnStatusChange'],
+       email_status_to => 'joe@domain.org',
+       conf_file       => '/my/apache/dir/conf/httpd.conf'
+   );
 
 =for readme continue
 
