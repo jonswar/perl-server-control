@@ -136,6 +136,27 @@ sub test_graceful_restart : Tests(6) {
     ok( !$ctl->is_running(), "is not running" );
 }
 
+sub test_cli_parse_argv : Tests(1) {
+    my ($self) = @_;
+
+    local @ARGV = ( split( ' ', '-f 1 -b 2 -d 3 -k 4 --name 5 --port 6 -v' ) );
+    my $class        = 'Server::Control::Apache';
+    my %option_pairs = $class->_cli_option_pairs();
+    my %cli_params   = $class->_cli_parse_argv( \%option_pairs );
+    is_deeply(
+        \%cli_params,
+        {
+            conf_file    => 1,
+            httpd_binary => 2,
+            server_root  => 3,
+            action       => 4,
+            name         => 5,
+            port         => 6,
+            verbose      => 1
+        }
+    );
+}
+
 sub is_realpath {
     my ( $path1, $path2, $name ) = @_;
 
