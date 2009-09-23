@@ -103,12 +103,11 @@ sub test_missing_params : Test(1) {
     qr/no conf_file or server_root specified/;
 }
 
-sub test_graceful_stop : Tests(5) {
+sub test_graceful_stop : Tests(4) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
 
-    ok( !$ctl->is_running(), "not running" );
     $ctl->start();
     ok( $ctl->is_running(), "is running" );
     $ctl->graceful_stop();
@@ -117,14 +116,13 @@ sub test_graceful_stop : Tests(5) {
     is( $ctl->stop_cmd(), 'graceful-stop' );
 }
 
-sub test_graceful_restart : Tests(6) {
+sub test_graceful_restart : Tests(5) {
     my $self = shift;
     my $ctl  = $self->{ctl};
 
     $self->setup_test_logger('debug');
     my $log = $self->{log};
 
-    ok( !$ctl->is_running(), "not running" );
     $ctl->start();
     ok( $ctl->is_running(), "is running" );
     $log->clear();
