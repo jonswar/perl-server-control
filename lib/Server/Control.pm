@@ -21,10 +21,16 @@ use warnings;
 
 our $VERSION = '0.10';
 
-# Gives us new_with_traits
+# Gives us new_with_traits - only if MooseX::Traits is installed
 #
-with 'MooseX::Traits';
-has '+_trait_namespace' => ( default => 'Server::Control::Plugin' );
+eval {
+    with 'MooseX::Traits';
+    has '+_trait_namespace' => ( default => 'Server::Control::Plugin' );
+};
+if ($@) {
+    __PACKAGE__->meta->add_method(
+        new_with_traits => sub { die "MooseX::Traits could not be loaded" } );
+}
 
 #
 # ATTRIBUTES
@@ -942,9 +948,9 @@ failed_stop - called when a stop() fails
 
 =back
 
-C<Server::Control> uses the L<MooseX::Traits|MooseX::Traits> role, so you can
-call it with C<new_with_traits()>. The default trait_namespace is
-C<Server::Control::Plugin>.
+C<Server::Control> uses the L<MooseX::Traits|MooseX::Traits> role if it is
+installed, so you can call it with C<new_with_traits()>. The default
+trait_namespace is C<Server::Control::Plugin>.
 
 For example, here is a role that sends an email whenever a server is
 successfully started or stopped:
