@@ -133,7 +133,7 @@ sub test_refork : Tests(7) {
 sub wait_for_child_pids {
     my ($pid) = @_;
     my @child_pids;
-    for ( my $count = 0 ; $count < 10 ; $count++ ) {
+    for my $count ( 0 .. 9 ) {
         Time::HiRes::sleep(0.5);
         last if @child_pids = get_child_pids($pid);
     }

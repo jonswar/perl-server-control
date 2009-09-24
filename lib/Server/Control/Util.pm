@@ -83,7 +83,8 @@ sub something_is_listening_msg {
 sub kill_my_children {
     my @child_pids = kill_children($$);
     if ( $ENV{TEST_VERBOSE} ) {
-        printf STDERR "sending TERM to %s\n", join( ", ", @child_pids );
+        printf STDERR "sending TERM to %s\n", join( ", ", @child_pids )
+          if @child_pids;
     }
 }
 
