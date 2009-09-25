@@ -4,14 +4,14 @@ Revision history for Server-Control
 
 0.10  Sep 18, 2009
 
+- Fix -b option in apachectlp
 - Add graceful and graceful-stop to apachectlp and Server::Control::Apache
 - Add bin/serverctlp, a generic version of apachectlp with required --class
 - Add refork action, which sends a TERM to the child processes of the server's main process
-- Use MooseX::Traits
+- Use MooseX::Traits if available
 - Add successful_start, failed_start, successful_stop, failed_stop hooks
 - Return boolean indicating success from start, stop, restart
 - Add --no-parse-config to apachectlp
-- Fix -b option in apachectlp
 - Add -I to CLI options
 
 0.09  Sep 18, 2009
