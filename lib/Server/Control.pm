@@ -238,6 +238,7 @@ sub refork {
     $log->debugf( "sent TERM to children of pid %d (%s)",
         $proc->pid, join( ", ", @child_pids ) )
       if $log->is_debug;
+    $log->infof( "reforked %s", $self->description() );
     return @child_pids;
 }
 
