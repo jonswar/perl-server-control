@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.10  Sep 18, 2009
+0.10  Sep 25, 2009
 
 - Fix -b option in apachectlp
 - Add graceful and graceful-stop to apachectlp and Server::Control::Apache
