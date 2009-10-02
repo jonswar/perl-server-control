@@ -94,18 +94,37 @@ sub test_simple : Tests(12) {
     ok( !$ctl->is_running(), "not running" );
 }
 
-sub test_restart : Tests(8) {
+sub test_restart : Tests(16) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
 
     ok( !$ctl->is_running(), "not running" );
-    ok( !$ctl->restart() );
-    $log->contains_ok(qr/will not attempt start/);
+    ok( $ctl->restart() );
+    ok( $ctl->is_running(), "is running" );
+    ok( $ctl->stop() );
+    ok( !$ctl->is_running(), "not running" );
     ok( $ctl->start() );
     ok( $ctl->is_running(), "is running" );
     ok( $ctl->restart() );
     ok( $ctl->is_running(), "is still running" );
+    ok( $ctl->stop() );
+
+    # Make sure restart aborts when stop fails
+    my $orig_class  = ref($ctl);
+    my $unstoppable = Class::MOP::Class->create_anon_class(
+        superclasses => [$orig_class],
+        methods      => {
+            do_stop => sub { die "can't stop!" }
+        }
+    );
+    bless( $ctl, $unstoppable->name );
+    ok( $ctl->start() );
+    ok( !$ctl->stop() );
+    $log->contains_ok(qr/can't stop/);
+    ok( !$ctl->restart() );
+    $log->contains_ok(qr/could not stop.*will not attempt start/);
+    bless( $ctl, $orig_class );
     ok( $ctl->stop() );
 }
 
@@ -170,12 +189,12 @@ sub test_wrong_port : Tests(8) {
 
     # Tell ctl object to expect wrong port, to simulate a server not starting properly
     my $new_port = $port + 1;
-    $ctl->{port}                = $new_port;
-    $ctl->{wait_for_start_secs} = 1;
+    $ctl->{port}                 = $new_port;
+    $ctl->{wait_for_status_secs} = 1;
     ok( !$ctl->start() );
     $log->contains_ok(qr/waiting for server start/);
     $log->contains_ok(
-        qr/after .*, server .* is running \(pid .*\), but not listening to port $new_port/
+        qr/after .*, server .* appears to be running \(pid .*\), but not listening to port $new_port/
     );
     ok( $ctl->is_running(),    "running" );
     ok( !$ctl->is_listening(), "not listening" );

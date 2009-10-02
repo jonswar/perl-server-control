@@ -83,9 +83,17 @@ sub BUILDARGS {
     my $class  = shift;
     my %params = @_;
 
-    my $rc_file = delete( $params{serverctlrc} )
-      || ( defined( $params{server_root} )
-        && "$params{server_root}/serverctl.yml" );
+    $class->_handle_serverctlrc( \%params );
+
+    return $class->SUPER::BUILDARGS(%params);
+}
+
+sub _handle_serverctlrc {
+    my ( $class, $params ) = @_;
+
+    my $rc_file = delete( $params->{serverctlrc} )
+      || ( defined( $params->{server_root} )
+        && join( "/", $params->{server_root}, "serverctl.yml" ) );
     if ( defined $rc_file && -f $rc_file ) {
         if ( defined( my $rc_params = YAML::Any::LoadFile($rc_file) ) ) {
             die "expected hashref from rc_file '$rc_file', got '$rc_params'"
@@ -93,14 +101,12 @@ sub BUILDARGS {
             %$rc_params =
               map { my $val = $rc_params->{$_}; s/\-/_/g; ( $_, $val ) }
               keys(%$rc_params);
-            %params = ( %$rc_params, %params );
+            %$params = ( %$rc_params, %$params );
             $log->debugf( "found rc file '%s' with these parameters: %s",
                 $rc_file, $rc_params )
               if $log->is_debug;
         }
     }
-
-    return $class->SUPER::BUILDARGS(%params);
 }
 
 sub _build_bind_addr {
@@ -271,17 +277,19 @@ sub status_as_string {
     my $port   = $self->port;
     my $status = $self->status();
     my $msg =
-        ( $status == INACTIVE ) ? "not running"
+        ( $status == INACTIVE ) ? "is not running"
       : ( $status == RUNNING )
-      ? sprintf( "running (pid %d), but not listening to port %d",
+      ? sprintf( "appears to be running (pid %d), but not listening to port %d",
         $self->is_running->pid, $port )
       : ( $status == LISTENING )
-      ? sprintf( "not running, but something is listening to port %d", $port )
+      ? sprintf( "pid file '%s' does not exist, but %s",
+        $self->pid_file,
+        something_is_listening_msg( $self->port, $self->bind_addr ) )
       : ( $status == ACTIVE )
-      ? sprintf( "running (pid %d) and listening to port %d",
+      ? sprintf( "is running (pid %d) and listening to port %d",
         $self->is_running->pid, $port )
       : die "invalid status: $status";
-    return join( " is ", $self->description(), $msg );
+    return join( " ", $self->description(), $msg );
 }
 
 sub is_running {
