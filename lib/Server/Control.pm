@@ -220,14 +220,14 @@ sub stop {
 sub restart {
     my ($self) = @_;
 
-    if ( $self->stop() ) {
-        return $self->start();
+    if ( $self->is_running() ) {
+        unless ( $self->stop() ) {
+            $log->infof( "could not stop %s, will not attempt start",
+                $self->description() );
+            return 0;
+        }
     }
-    else {
-        $log->infof( "could not stop %s, will not attempt start",
-            $self->description() );
-        return 0;
-    }
+    return $self->start();
 }
 
 sub refork {
