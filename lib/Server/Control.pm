@@ -114,7 +114,7 @@ sub _log_constructor_params {
     my ( $class, $params ) = @_;
 
     $log->debugf( "constructing Server::Control with these params: %s",
-        \%params )
+        $params )
       if $log->is_debug;
 }
 
