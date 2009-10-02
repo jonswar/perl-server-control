@@ -49,7 +49,13 @@ override 'valid_cli_actions' => sub {
 __PACKAGE__->meta->make_immutable();
 
 sub BUILD {
-    my ( $self, $params ) = @_;
+    my ($self) = @_;
+
+    $self->_validate_conf_file();
+}
+
+sub _validate_conf_file {
+    my ($self) = @_;
 
     # Ensure that we have an existent conf_file after object is built. It
     # can come from the conf_file or server_root parameter.
@@ -120,7 +126,7 @@ sub _build_server_root {
 sub _build_pid_file {
     my $self = shift;
     if ( my $pid_file = $self->parsed_config->{PidFile} ) {
-        return $pid_file;
+        return $self->_rel2abs($pid_file);
     }
     else {
         $log->debugf( "defaulting pid_file to %s/%s",
@@ -155,7 +161,7 @@ sub _build_port {
 sub _build_error_log {
     my $self = shift;
     if ( defined( my $error_log = $self->parsed_config->{ErrorLog} ) ) {
-        return $error_log;
+        return $self->_rel2abs($error_log);
     }
     else {
         my $error_log = catdir( $self->log_dir, "error_log" );
@@ -220,6 +226,15 @@ sub run_httpd_command {
 
     my $cmd = "$httpd_binary -k $command -f $conf_file";
     $self->run_system_command($cmd);
+}
+
+sub _rel2abs {
+    my ( $self, $path ) = @_;
+
+    if ( substr( $path, 0, 1 ) ne '/' ) {
+        $path = join( '/', $self->server_root, $path );
+    }
+    return $path;
 }
 
 1;
