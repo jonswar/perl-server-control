@@ -99,6 +99,8 @@ sub BUILDARGS {
               if $log->is_debug;
         }
     }
+    $log->debugf("constructing Server::Control with these params: %s", \%params)
+        if $log->is_debug;
 
     return $class->SUPER::BUILDARGS(%params);
 }
