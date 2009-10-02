@@ -19,7 +19,7 @@ use YAML::Any;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 # Gives us new_with_traits - only if MooseX::Traits is installed
 #
@@ -72,20 +72,29 @@ use constant {
 };
 
 #
-# ATTRIBUTE BUILDERS
+# CONSTRUCTION
 #
+
+sub BUILDARGS {
+    my $class  = shift;
+    my %params = @_;
+
+    $class->_handle_serverctlrc( \%params );
+    $class->_log_constructor_params( \%params );
+
+    return $class->SUPER::BUILDARGS(%params);
+}
 
 # See if there is an rc_file, in serverctlrc parameter or in
 # server_root/serverctl.yml; if so, read from it and merge with parameters
 # passed to constructor.
 #
-sub BUILDARGS {
-    my $class  = shift;
-    my %params = @_;
+sub _handle_serverctlrc {
+    my ( $class, $params ) = @_;
 
-    my $rc_file = delete( $params{serverctlrc} )
-      || ( defined( $params{server_root} )
-        && "$params{server_root}/serverctl.yml" );
+    my $rc_file = delete( $params->{serverctlrc} )
+      || ( defined( $params->{server_root} )
+        && join( "/", $params->{server_root}, "serverctl.yml" ) );
     if ( defined $rc_file && -f $rc_file ) {
         if ( defined( my $rc_params = YAML::Any::LoadFile($rc_file) ) ) {
             die "expected hashref from rc_file '$rc_file', got '$rc_params'"
@@ -93,17 +102,25 @@ sub BUILDARGS {
             %$rc_params =
               map { my $val = $rc_params->{$_}; s/\-/_/g; ( $_, $val ) }
               keys(%$rc_params);
-            %params = ( %$rc_params, %params );
+            %$params = ( %$rc_params, %$params );
             $log->debugf( "found rc file '%s' with these parameters: %s",
                 $rc_file, $rc_params )
               if $log->is_debug;
         }
     }
-    $log->debugf("constructing Server::Control with these params: %s", \%params)
-        if $log->is_debug;
-
-    return $class->SUPER::BUILDARGS(%params);
 }
+
+sub _log_constructor_params {
+    my ( $class, $params ) = @_;
+
+    $log->debugf( "constructing Server::Control with these params: %s",
+        \%params )
+      if $log->is_debug;
+}
+
+#
+# ATTRIBUTE BUILDERS
+#
 
 sub _build_bind_addr {
     return "localhost";
@@ -222,14 +239,14 @@ sub stop {
 sub restart {
     my ($self) = @_;
 
-    if ( $self->stop() ) {
-        return $self->start();
+    if ( $self->is_running() ) {
+        unless ( $self->stop() ) {
+            $log->infof( "could not stop %s, will not attempt start",
+                $self->description() );
+            return 0;
+        }
     }
-    else {
-        $log->infof( "could not stop %s, will not attempt start",
-            $self->description() );
-        return 0;
-    }
+    return $self->start();
 }
 
 sub refork {
@@ -273,17 +290,19 @@ sub status_as_string {
     my $port   = $self->port;
     my $status = $self->status();
     my $msg =
-        ( $status == INACTIVE ) ? "not running"
+        ( $status == INACTIVE ) ? "is not running"
       : ( $status == RUNNING )
-      ? sprintf( "running (pid %d), but not listening to port %d",
+      ? sprintf( "appears to be running (pid %d), but not listening to port %d",
         $self->is_running->pid, $port )
       : ( $status == LISTENING )
-      ? sprintf( "not running, but something is listening to port %d", $port )
+      ? sprintf( "pid file '%s' does not exist, but %s",
+        $self->pid_file,
+        something_is_listening_msg( $self->port, $self->bind_addr ) )
       : ( $status == ACTIVE )
-      ? sprintf( "running (pid %d) and listening to port %d",
+      ? sprintf( "is running (pid %d) and listening to port %d",
         $self->is_running->pid, $port )
       : die "invalid status: $status";
-    return join( " is ", $self->description(), $msg );
+    return join( " ", $self->description(), $msg );
 }
 
 sub is_running {
