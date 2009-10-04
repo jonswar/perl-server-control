@@ -94,23 +94,23 @@ sub test_simple : Tests(12) {
     ok( !$ctl->is_running(), "not running" );
 }
 
-sub test_restart : Tests(16) {
+sub test_stopstart : Tests(16) {
     my $self = shift;
     my $ctl  = $self->{ctl};
     my $log  = $self->{log};
 
     ok( !$ctl->is_running(), "not running" );
-    ok( $ctl->restart() );
+    ok( $ctl->stopstart() );
     ok( $ctl->is_running(), "is running" );
     ok( $ctl->stop() );
     ok( !$ctl->is_running(), "not running" );
     ok( $ctl->start() );
     ok( $ctl->is_running(), "is running" );
-    ok( $ctl->restart() );
+    ok( $ctl->stopstart() );
     ok( $ctl->is_running(), "is still running" );
     ok( $ctl->stop() );
 
-    # Make sure restart aborts when stop fails
+    # Make sure stopstart aborts when stop fails
     my $orig_class  = ref($ctl);
     my $unstoppable = Class::MOP::Class->create_anon_class(
         superclasses => [$orig_class],
@@ -122,7 +122,7 @@ sub test_restart : Tests(16) {
     ok( $ctl->start() );
     ok( !$ctl->stop() );
     $log->contains_ok(qr/can't stop/);
-    ok( !$ctl->restart() );
+    ok( !$ctl->stopstart() );
     $log->contains_ok(qr/could not stop.*will not attempt start/);
     bless( $ctl, $orig_class );
     ok( $ctl->stop() );
