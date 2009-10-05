@@ -11,10 +11,9 @@ use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
 use Pod::Usage;
-use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
 use Server::Control::Util
-  qw(is_port_active kill_children something_is_listening_msg);
+  qw(is_port_active kill_children something_is_listening_msg process_table);
 use YAML::Any;
 use strict;
 use warnings;
@@ -386,7 +385,7 @@ sub is_running {
             return undef;
         }
 
-        my $ptable = new Proc::ProcessTable();
+        my $ptable = process_table();
         if ( my ($proc) = grep { $_->pid == $pid } @{ $ptable->table } ) {
             $log->debugf( "pid file '%s' exists and has valid pid %d",
                 $pid_file, $pid )

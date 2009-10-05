@@ -7,7 +7,6 @@ use HTTP::Server::Simple;
 use Log::Any;
 use Net::Server;
 use POSIX qw(geteuid getegid);
-use Proc::ProcessTable;
 use Server::Control::Util
   qw(get_child_pids kill_my_children is_port_active something_is_listening_msg);
 use Test::Log::Dispatch;
