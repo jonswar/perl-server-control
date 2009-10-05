@@ -15,7 +15,25 @@ has 'net_server_class' => (
 has 'net_server_params' =>
   ( is => 'ro', isa => 'HashRef', default => sub { {} } );
 
+# All of this hackery is to skip the port check on start during a HUP,
+# because Net::Server leaves the sockets open.
+#
+has 'in_hup' => ( is => 'ro' );
+before '_perform_cli_action' => sub {
+    push( @ARGV, '--in-hup' ) if !( grep { $_ eq '--in-hup' } @ARGV );
+};
+around '_listening_before_start' => sub {
+    my $orig = shift;
+    my $self = shift;
+    return $self->in_hup() ? 0 : $self->$orig(@_);
+};
+
 __PACKAGE__->meta->make_immutable();
+
+sub _cli_option_pairs {
+    my $class = shift;
+    return ( $class->SUPER::_cli_option_pairs, 'in-hup' => 'in_hup', );
+}
 
 sub _build_port {
     my $self = shift;

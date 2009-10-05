@@ -116,6 +116,25 @@ sub test_graceful_stop : Tests(4) {
     is( $ctl->stop_cmd(), 'graceful-stop' );
 }
 
+# Can't test for Perl standalone servers yet, because they implement HUP by
+# trying to re-exec command-line
+sub test_hup : Test(7) {
+    my $self = shift;
+
+    my $ctl = $self->{ctl};
+    my $log = $self->{log};
+
+    ok( !$ctl->is_running(), "not running" );
+    ok( !$ctl->hup(),        "hup when not running" );
+    $log->contains_ok( qr/server '.*' is not running/, "hup: is not running" );
+    $log->clear();
+
+    ok( $ctl->start() );
+    ok( $ctl->is_running(), "is running" );
+    ok( $ctl->hup(),        "hup ok" );
+    $log->contains_ok(qr/sent HUP to process \d+/);
+}
+
 sub test_graceful_restart : Tests(5) {
     my $self = shift;
     my $ctl  = $self->{ctl};

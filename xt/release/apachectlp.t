@@ -79,7 +79,7 @@ eval {
     try_error( "-f $conf_file -k ping --no-parse-config", qr/no port specified/si );
     try_error( "-k start",      qr/must specify one of -d or -f.*usage/si );
     try_error( "-k bleah -f $conf_file",
-        qr/invalid action 'bleah' - must be one of/s );
+        qr/invalid action 'bleah'/s );
     try_error(
         "-k ping -f $conf_file --bad-option",
         qr/Unknown option: bad-option.*usage:/si

@@ -32,7 +32,7 @@ Required options: -c and -k, and possibly others depending on subclass
  -v, --verbose       Show verbose output
  -I                  Library paths to include
 
-In general, any constructor parameter to L<Server::Control|Server::Control> ot
+In general, any constructor parameter to L<Server::Control|Server::Control> to
 the subclass can be passed here (replacing underscores with dashes), e.g.
 
  --name
