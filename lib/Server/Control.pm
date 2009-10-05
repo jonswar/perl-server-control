@@ -52,6 +52,7 @@ has 'restart_method' =>
   ( is => 'ro', isa => enum( [qw(hup stopstart)] ), default => 'stopstart' );
 has 'server_root'          => ( is => 'ro', isa => 'Str' );
 has 'use_sudo'             => ( is => 'ro', isa => 'Bool', lazy_build => 1 );
+has 'wait_for_hup_secs'    => ( is => 'ro', isa => 'Num', default => 0.5 );
 has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int', default => 10 );
 
 # These are only for command-line. Would like to prevent their use from regular new()...
@@ -264,8 +265,13 @@ sub stop {
 sub restart {
     my ($self) = @_;
 
-    my $restart_method = $self->restart_method;
-    $self->$restart_method();
+    if ( !$self->is_running() ) {
+        return $self->start();
+    }
+    else {
+        my $restart_method = $self->restart_method;
+        $self->$restart_method();
+    }
 }
 
 sub hup {
@@ -278,7 +284,7 @@ sub hup {
         return 0;
     }
     $log->infof( "sent HUP to process %d", $proc->pid );
-    usleep( $self->poll_for_status_secs() * 1_000_000 );
+    usleep( $self->wait_for_hup_secs() * 1_000_000 );
     if ( $self->_wait_for_status( ACTIVE, 'restart' ) ) {
         $log->info( $self->status_as_string() );
         return 1;
@@ -331,29 +337,32 @@ sub do_stop {
 }
 
 sub status {
-    my ($self) = @_;
+    my $self = shift;
 
-    return ( $self->is_running() ? RUNNING   : 0 ) |
-      ( $self->is_listening()    ? LISTENING : 0 );
+    # Can pass in is_running() result, else we'll do it here
+    my $is_running = (@_) ? shift(@_) : $self->is_running();
+    return ( $is_running    ? RUNNING   : 0 ) |
+      ( $self->is_listening ? LISTENING : 0 );
 }
 
 sub status_as_string {
     my ($self) = @_;
 
     my $port   = $self->port;
-    my $status = $self->status();
+    my $proc   = $self->is_running();
+    my $status = $self->status($proc);
     my $msg =
         ( $status == INACTIVE ) ? "is not running"
       : ( $status == RUNNING )
       ? sprintf( "appears to be running (pid %d), but not listening to port %d",
-        $self->is_running->pid, $port )
+        $proc->pid, $port )
       : ( $status == LISTENING )
       ? sprintf( "pid file '%s' does not exist, but %s",
         $self->pid_file,
         something_is_listening_msg( $self->port, $self->bind_addr ) )
       : ( $status == ACTIVE )
       ? sprintf( "is running (pid %d) and listening to port %d",
-        $self->is_running->pid, $port )
+        $proc->pid, $port )
       : die "invalid status: $status";
     return join( " ", $self->description(), $msg );
 }
@@ -365,7 +374,7 @@ sub is_running {
     my $pid_contents = eval { read_file($pid_file) };
     if ($@) {
         $log->debugf( "pid file '%s' does not exist", $pid_file )
-          if $log->is_debug;
+          if $log->is_debug && !$self->{_suppress_logs};
         return undef;
     }
     else {
@@ -380,7 +389,8 @@ sub is_running {
         my $ptable = new Proc::ProcessTable();
         if ( my ($proc) = grep { $_->pid == $pid } @{ $ptable->table } ) {
             $log->debugf( "pid file '%s' exists and has valid pid %d",
-                $pid_file, $pid );
+                $pid_file, $pid )
+              if $log->is_debug && !$self->{_suppress_logs};
             return $proc;
         }
         else {
@@ -404,7 +414,7 @@ sub is_listening {
             "%s is listening to %s:%d",
             $is_listening ? "something" : "nothing",
             $self->bind_addr(), $self->port()
-        );
+        ) if $log->is_debug && !$self->{_suppress_logs};
     }
     return $is_listening;
 }
@@ -495,6 +505,7 @@ sub _wait_for_status {
     $log->infof("waiting for server $action");
     my $wait_until = time() + $self->wait_for_status_secs();
     my $poll_delay = $self->poll_for_status_secs() * 1_000_000;
+    local $self->{_suppress_logs} = 1;    # Suppress logs during this loop
     while ( time() < $wait_until ) {
         if ( $self->status == $status ) {
             return 1;
@@ -840,8 +851,9 @@ stopping it).
 
 =item restart
 
-Restart the server using the L</restart_method> - one of L</hup> or
-L</stopstart>, defaults to L</stopstart>.
+If the server is not running, start it. Otherwise, restart the server using the
+L</restart_method> - one of L</hup> or L</stopstart>, defaults to
+L</stopstart>.
 
 =item hup
 
