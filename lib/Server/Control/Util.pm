@@ -14,6 +14,7 @@ our @EXPORT_OK = qw(
   kill_my_children
   kill_children
   get_child_pids
+  process_table
 );
 
 eval { require Unix::Lsof };
@@ -54,7 +55,7 @@ sub process_listening_to_port {
           )
         {
             my $pid    = $row->[0];
-            my $ptable = new Proc::ProcessTable();
+            my $ptable = process_table();
             if ( my ($proc) = grep { $_->pid == $pid } @{ $ptable->table } ) {
                 return $proc;
             }
@@ -105,8 +106,13 @@ sub kill_children {
 sub get_child_pids {
     my ($pid) = @_;
 
-    my $pt = new Proc::ProcessTable;
+    my $pt = process_table();
     return Proc::Killfam::get_pids( $pt->table, $pid );
 }
+
+sub process_table {
+    return new Proc::ProcessTable(cache_ttys => 1);    
+}
+
 
 1;

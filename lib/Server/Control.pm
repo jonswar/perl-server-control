@@ -11,10 +11,9 @@ use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
 use Pod::Usage;
-use Proc::ProcessTable;
 use Time::HiRes qw(usleep);
 use Server::Control::Util
-  qw(is_port_active kill_children something_is_listening_msg);
+  qw(is_port_active kill_children something_is_listening_msg process_table);
 use YAML::Any;
 use strict;
 use warnings;
@@ -27,9 +26,9 @@ eval {
     with 'MooseX::Traits';
     has '+_trait_namespace' => ( default => 'Server::Control::Plugin' );
 };
-if ($@) {
+if (my $moosex_traits_error = $@) {
     __PACKAGE__->meta->add_method(
-        new_with_traits => sub { die "MooseX::Traits could not be loaded" } );
+        new_with_traits => sub { die "MooseX::Traits could not be loaded - $moosex_traits_error" } );
 }
 
 #
@@ -386,7 +385,7 @@ sub is_running {
             return undef;
         }
 
-        my $ptable = new Proc::ProcessTable();
+        my $ptable = process_table();
         if ( my ($proc) = grep { $_->pid == $pid } @{ $ptable->table } ) {
             $log->debugf( "pid file '%s' exists and has valid pid %d",
                 $pid_file, $pid )
