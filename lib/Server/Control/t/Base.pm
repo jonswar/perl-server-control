@@ -12,7 +12,7 @@ use Server::Control::Util
   qw(get_child_pids kill_my_children is_port_active something_is_listening_msg);
 use Test::Log::Dispatch;
 use Test::Most;
-use Time::HiRes;
+use Time::HiRes qw(usleep);
 use strict;
 use warnings;
 
@@ -139,6 +139,7 @@ sub test_refork : Tests(7) {
     my @pids = wait_for_child_pids( $proc->pid );
     ok( @pids >= 1, "at least one child pid" );
     $ctl->refork();
+    usleep(500000);    # wait for pids to die
 
     my @pids2 = wait_for_child_pids( $proc->pid );
     ok( @pids2 >= 1, "at least one child pid after refork" );
