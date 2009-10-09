@@ -318,6 +318,20 @@ Gracefully stop the server - see http://httpd.apache.org/docs/2.2/stopping.html
 
 =back
 
+=head1 TO DO
+
+=over
+
+=item *
+
+Improve exit code from apachectlp - at least 0 for success, 1 for error
+
+=item *
+
+Add configtest action, and test config before apache restart, like apachectl
+
+=back
+
 =head1 AUTHOR
 
 Jonathan Swartz

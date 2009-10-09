@@ -26,9 +26,12 @@ eval {
     with 'MooseX::Traits';
     has '+_trait_namespace' => ( default => 'Server::Control::Plugin' );
 };
-if (my $moosex_traits_error = $@) {
+if ( my $moosex_traits_error = $@ ) {
     __PACKAGE__->meta->add_method(
-        new_with_traits => sub { die "MooseX::Traits could not be loaded - $moosex_traits_error" } );
+        new_with_traits => sub {
+            die "MooseX::Traits could not be loaded - $moosex_traits_error";
+        }
+    );
 }
 
 #
@@ -1130,11 +1133,19 @@ L<MooseX::Control|MooseX::Control>
 
 =item *
 
-Add 'refork' action, which kills all children of a forking server
+Plugin to check a URL after start and make sure it comes back ok
 
 =item *
 
-Write a plugin to dynamically generate conf files
+Plugin to dynamically generate conf files
+
+=item *
+
+Consult global serverctlrc file as well, for common host settings
+
+=item *
+
+Add persistent shell mode, to eliminate startup cost for repeated restarts
 
 =back
 

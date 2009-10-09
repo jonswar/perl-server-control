@@ -111,8 +111,7 @@ sub get_child_pids {
 }
 
 sub process_table {
-    return new Proc::ProcessTable(cache_ttys => 1);    
+    return new Proc::ProcessTable( cache_ttys => 1 );
 }
-
 
 1;
