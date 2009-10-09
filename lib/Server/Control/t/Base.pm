@@ -199,6 +199,7 @@ sub test_wrong_port : Tests(8) {
     ok( $ctl->is_running(),    "running" );
     ok( !$ctl->is_listening(), "not listening" );
 
+    $ctl->{wait_for_status_secs} = 10;
     ok( $ctl->stop() );
     $log->contains_ok(qr/stopped/);
     ok( !$ctl->is_running(), "not running" );
