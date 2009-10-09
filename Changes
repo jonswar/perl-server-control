@@ -9,7 +9,7 @@ Revision history for Server-Control
 - Parse relative error_log and pid_file paths in Apache conf correctly
 - Handle --serverctlrc correctly
 - Make restart work if server isn't running
-- Better diagnostics when server is only partially active
+- Improve diagnostics when server is only partially active
 
 0.10  Sep 25, 2009
 
