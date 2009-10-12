@@ -753,7 +753,7 @@ implementation stabilizes.
 =head1 CONSTRUCTOR PARAMETERS
 
 You can pass the following common parameters to the constructor, or include
-them in an L<serverctlrc|rc file>.
+them in an L<rc file|serverctlrc>.
 
 Some subclasses can deduce some of these parameters without needing an explicit
 value passed in.  For example,
