@@ -608,7 +608,8 @@ sub _setup_cli_logging {
       Log::Dispatch->new( outputs =>
           [ [ 'Screen', stderr => 0, min_level => $log_level, newline => 1 ] ]
       );
-    Log::Any->set_adapter( 'Dispatch', dispatcher => $dispatcher );
+    Log::Any->set_adapter( { category => 'Server::Control' },
+        'Dispatch', dispatcher => $dispatcher );
 }
 
 sub _perform_cli_action {
