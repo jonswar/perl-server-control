@@ -6,7 +6,6 @@ use File::Which qw(which);
 use Log::Any qw($log);
 use Moose;
 use MooseX::StrictConstructor;
-use Pod::Usage qw(pod2usage);
 use strict;
 use warnings;
 
@@ -29,17 +28,17 @@ sub _cli_option_pairs {
     );
 }
 
-around '_cli_parse_argv' => sub {
-    my $orig  = shift;
-    my $class = shift;
+around 'new_from_cli' => sub {
+    my $orig   = shift;
+    my $class  = shift;
+    my %params = @_;
 
-    my %cli_params = $class->$orig(@_);
-    if (   !defined( $cli_params{server_root} )
-        && !defined( $cli_params{conf_file} ) )
+    if (   !defined( $params{server_root} )
+        && !defined( $params{conf_file} ) )
     {
         $class->_cli_usage("must specify one of -d or -f");
     }
-    return %cli_params;
+    return $class->$orig(@_);
 };
 
 override 'valid_cli_actions' => sub {

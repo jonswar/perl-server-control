@@ -1,3 +1,3 @@
 #!perl -w
 use Server::Control::t::NetServer;
-Test::Class::runtests(Server::Control::t::NetServer->new);
+Test::Class::runtests( Server::Control::t::NetServer->new );

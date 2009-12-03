@@ -488,7 +488,17 @@ sub new_with_options {
     # Combine passed and command-line params, pass to constructor
     #
     my %params = ( %passed_params, %cli_params );
-    return $class->new(%params);
+    return $class->new_from_cli(%params);
+}
+
+# This method gives subclasses an opportunity to examine the full set
+# of parameters (both specified on the cli passed to handle_cli) and issue
+# a cli-specific error, before moving onto the regular constructor.
+#
+sub new_from_cli {
+    my $class = shift;
+
+    return $class->new(@_);
 }
 
 #
