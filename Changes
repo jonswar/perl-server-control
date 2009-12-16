@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.12  Oct 8, 2009
+0.12  Dec 15, 2009
 
 - Don't require -d/-f in Apache if server_root or conf_file were passed into handle_cli
 - Add overridable validate_server method, called after start and hup
