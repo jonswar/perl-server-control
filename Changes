@@ -5,6 +5,8 @@ Revision history for Server-Control
 0.12  Oct 8, 2009
 
 - Don't require -d/-f in Apache if server_root or conf_file were passed into handle_cli
+- Add overridable validate_server method, called after start and hup
+- Add validate_url and validate_regex options for Apache
 
 0.11  Oct 8, 2009
 
