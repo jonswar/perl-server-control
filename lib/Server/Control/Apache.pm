@@ -17,6 +17,8 @@ has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
 has 'no_parse_config' => ( is => 'ro' );
 has 'server_root'     => ( is => 'ro', lazy_build => 1 );
 has 'stop_cmd'        => ( is => 'rw', init_arg => undef, default => 'stop' );
+has 'validate_url'    => ( is => 'ro' );
+has 'validate_regex' => ( is => 'ro', isa => 'RegexpRef' );
 
 sub _cli_option_pairs {
     my $class = shift;
@@ -200,8 +202,6 @@ sub graceful {
     if ( my $err = $@ ) {
         $log->errorf( "error during graceful restart of %s: %s",
             $self->description(), $err );
-        $self->_report_error_log_output($error_size_start);
-        return;
     }
 
     if (
@@ -211,10 +211,13 @@ sub graceful {
       )
     {
         $log->info( $self->status_as_string() );
+        if ( $self->validate_server() ) {
+            $self->successful_start();
+            return 1;
+        }
     }
-    else {
-        $self->_report_error_log_output($error_size_start);
-    }
+    $self->_report_error_log_output($error_size_start);
+    return 0;
 }
 
 sub run_httpd_command {
@@ -225,6 +228,37 @@ sub run_httpd_command {
 
     my $cmd = "$httpd_binary -k $command -f $conf_file";
     $self->run_system_command($cmd);
+}
+
+sub validate_server {
+    my ($self) = @_;
+
+    if ( my $url = $self->validate_url ) {
+        require LWP;
+        $url = sprintf( "http://%s%s%s",
+            $self->bind_addr,
+            ( $self->port == 80 ? '' : ( ":" . $self->port ) ), $url )
+          if substr( $url, 0, 1 ) eq '/';
+        $log->infof( "validating url '%s'", $url );
+        my $ua  = LWP::UserAgent->new;
+        my $res = $ua->get($url);
+        if ( $res->is_success ) {
+            if ( my $regex = $self->validate_regex ) {
+                if ( $res->content !~ $regex ) {
+                    $log->errorf(
+                        "content of '%s' (%d bytes) did not match regex '%s'",
+                        $url, length( $res->content ), $regex );
+                    return 0;
+                }
+            }
+            $log->debugf("validation successful") if $log->is_debug;
+            return 1;
+        }
+        else {
+            $log->errorf( "error getting '%s': %s", $url, $res->status_line );
+            return 0;
+        }
+    }
 }
 
 sub _rel2abs {

@@ -198,20 +198,19 @@ sub start {
         if ( my $err = $@ ) {
             $log->errorf( "error while trying to start %s: %s",
                 $self->description(), $err );
-            $self->_report_error_log_output($error_size_start);
         }
         else {
             if ( $self->_wait_for_status( ACTIVE, 'start' ) ) {
                 ( my $status = $self->status_as_string() ) =~
                   s/running/now running/;
                 $log->info($status);
-                $self->successful_start();
-                return 1;
-            }
-            else {
-                $self->_report_error_log_output($error_size_start);
+                if ( $self->validate_server() ) {
+                    $self->successful_start();
+                    return 1;
+                }
             }
         }
+        $self->_report_error_log_output($error_size_start);
     }
     $self->failed_start();
     return 0;
@@ -289,12 +288,13 @@ sub hup {
     usleep( $self->wait_for_hup_secs() * 1_000_000 );
     if ( $self->_wait_for_status( ACTIVE, 'restart' ) ) {
         $log->info( $self->status_as_string() );
-        return 1;
+        if ( $self->validate_server() ) {
+            $self->successful_start();
+            return 1;
+        }
     }
-    else {
-        $self->_report_error_log_output($error_size_start);
-        return 0;
-    }
+    $self->_report_error_log_output($error_size_start);
+    return 0;
 }
 
 sub stopstart {
@@ -419,6 +419,14 @@ sub is_listening {
         ) if $log->is_debug && !$self->{_suppress_logs};
     }
     return $is_listening;
+}
+
+sub validate_server {
+    my ($self) = @_;
+
+    # Validate running server, in a server-specific way. By default just assume valid.
+    #
+    return 1;
 }
 
 sub run_system_command {
@@ -618,7 +626,7 @@ sub _setup_cli_logging {
       Log::Dispatch->new( outputs =>
           [ [ 'Screen', stderr => 0, min_level => $log_level, newline => 1 ] ]
       );
-    Log::Any->set_adapter( { category => 'Server::Control' },
+    Log::Any->set_adapter( { category => qr/^Server::Control/ },
         'Dispatch', dispatcher => $dispatcher );
 }
 
