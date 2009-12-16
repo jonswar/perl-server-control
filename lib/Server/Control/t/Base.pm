@@ -212,7 +212,7 @@ sub test_corrupt_pid_file : Test(5) {
     my $pid_file = $ctl->pid_file;
 
     write_file( $pid_file, "blah" );
-    ok( $ctl->start() );
+    ok( $ctl->start(), "started ok" );
     $log->contains_ok(qr/pid file '.*' does not contain a valid process id/);
     $log->contains_ok(qr/deleting bogus pid file/);
     ok( $ctl->is_running(), "is running" );

@@ -233,7 +233,7 @@ sub run_httpd_command {
 sub validate_server {
     my ($self) = @_;
 
-    if ( my $url = $self->validate_url ) {
+    if ( defined( my $url = $self->validate_url ) ) {
         require LWP;
         $url = sprintf( "http://%s%s%s",
             $self->bind_addr,
@@ -258,6 +258,9 @@ sub validate_server {
             $log->errorf( "error getting '%s': %s", $url, $res->status_line );
             return 0;
         }
+    }
+    else {
+        return 1;
     }
 }
 
@@ -304,8 +307,8 @@ want to use instead.
 
 =head1 CONSTRUCTOR
 
-The constructor options are as described in L<Server::Control|Server::Control>,
-except for:
+In addition to the constructor options described in
+L<Server::Control|Server::Control>:
 
 =over
 
@@ -324,6 +327,17 @@ uses the first one found.
 
 Don't attempt to parse the httpd.conf; only look at values passed in the usual
 ways.
+
+=item validate_url
+
+A URL to visit after the server has been started or HUP'd, in order to validate
+the state of the server. The URL just needs to return an OK result to be
+considered valid, unless L</validate_regex> is also specified.
+
+=item validate_regex
+
+A regex to match against the content returned by L</validate_url>. The content
+must match the regex for the server to be considered valid.
 
 =back
 

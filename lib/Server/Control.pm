@@ -1033,7 +1033,7 @@ L<Server::Control::Apache|Server::Control::Apache> for an example.
 
 =over
 
-=item do_start
+=item do_start ()
 
 This actually starts the server - it is called by L</start> and must be defined
 by the subclass. Any parameters to L</start> are passed here. If your server is
@@ -1050,6 +1050,16 @@ the current process, as returned by L</is_running>.
 
 Runs the specified I<$cmd> on the command line. Adds sudo if necessary (see
 L</use_sudo>), logs the command, and throws runtime errors appropriately.
+
+=item validate_server ()
+
+This method is called after the server starts or is HUP'd. It gives the
+subclass a chance to validate the server in a particular way. For example,
+L<Server::Control::Apache|Server::Control::Apache> can visit a particular URL
+and make sure the result is as expected.
+
+C<validate_server> should return a boolean indicating whether the server is in
+a valid state. The default C<validate_server> always returns true.
 
 =back
 

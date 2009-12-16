@@ -22,8 +22,9 @@ sub check_httpd_binary : Test(startup) {
 sub create_ctl {
     my ( $self, $port, $temp_dir, %extra_params ) = @_;
 
-    mkpath( "$temp_dir/logs", 0, 0775 );
-    mkpath( "$temp_dir/conf", 0, 0775 );
+    foreach my $subdir (qw(logs conf docs)) {
+        mkpath( "$temp_dir/$subdir", 0, 0775 );
+    }
     my $conf = "
         ServerName mysite.com
         ServerRoot $temp_dir
@@ -31,11 +32,13 @@ sub create_ctl {
         PidFile    $temp_dir/logs/my-httpd.pid
         LockFile   $temp_dir/logs/accept.lock
         ErrorLog   $temp_dir/logs/my-error.log
+        DocumentRoot $temp_dir/docs
         StartServers 2
         MinSpareServers 1
         MaxSpareServers 2
     ";
     write_file( "$temp_dir/conf/httpd.conf", $conf );
+    write_file( "$temp_dir/docs/hello.txt",  "Hello world!\n" );
     return Server::Control::Apache->new(
         server_root => $temp_dir,
         %extra_params
@@ -152,6 +155,42 @@ sub test_graceful_restart : Tests(5) {
     $log->contains_ok(qr/waiting for server graceful restart/);
     ok( $ctl->is_running(), "is running" );
     $ctl->stop();
+    ok( !$ctl->is_running(), "is not running" );
+}
+
+sub test_validate_url : Tests(7) {
+    my ($self) = @_;
+
+    my $log = $self->{log};
+    my $url = '/hello.txt';
+    my $ctl;
+
+    my $create_ctl =
+      sub { $ctl = $self->create_ctl( $self->{port}, $self->{temp_dir}, @_ ) };
+
+    $create_ctl->( validate_url => $url );
+    ok( $ctl->start() );
+    $ctl->stop();
+
+    $create_ctl->( validate_url => $url, validate_regex => qr/Hello world/ );
+    ok( $ctl->start() );
+    $ctl->stop();
+    $log->clear();
+
+    $create_ctl->( validate_url => $url, validate_regex => qr/Goodbye/ );
+    ok( !$ctl->start() );
+    $ctl->stop();
+    $log->contains_ok(qr/content of .* did not match regex/);
+    $log->clear();
+
+    $create_ctl->(
+        validate_url   => '/does/not/exist',
+        validate_regex => qr/Hello world/
+    );
+    ok( !$ctl->start() );
+    $ctl->stop();
+    $log->contains_ok(qr/error getting/);
+
     ok( !$ctl->is_running(), "is not running" );
 }
 
