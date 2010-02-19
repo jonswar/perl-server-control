@@ -676,7 +676,7 @@ sub _warn_if_different_user {
 
     my ( $uid, $eid ) = ( $<, $> );
     if ( ( $eid || $uid ) && $proc->uid != $uid && !$self->use_sudo() ) {
-        $log->warn(
+        $log->warnf(
             "warning: process %d is owned by uid %d ('%s'), different than current user %d ('%s'); may not be able to stop server",
             $proc->pid,
             $proc->uid,
