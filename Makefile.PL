@@ -31,7 +31,7 @@ requires 'Log::Any::Adapter::Dispatch' => '0.05';
 requires 'Moose'                       => '0.66';
 requires 'MooseX::StrictConstructor'   => '0.08';
 requires 'Pod::Usage'                  => 0;
-requires 'Proc::ProcessTable'          => '0.42';
+requires 'Proc::ProcessTable'          => '0.39';
 requires 'Time::HiRes'                 => 0;
 requires 'YAML::Any'                   => 0;
 
