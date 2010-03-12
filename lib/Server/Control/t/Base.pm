@@ -77,15 +77,14 @@ sub test_simple : Tests(12) {
 
     ok( !$ctl->is_running(), "not running" );
     ok( !$ctl->stop() );
-    $log->contains_only_ok( qr/server '.*' is not running/,
-        "stop: is not running" );
+    $log->contains_ok( qr/server '.*' is not running/, "stop: is not running" );
 
     ok( $ctl->start() );
     $log->contains_ok(qr/waiting for server start/);
-    $log->contains_only_ok(qr/is now running.* and listening to port $port/);
+    $log->contains_ok(qr/is now running.* and listening to port $port/);
     ok( $ctl->is_running(), "is running" );
     ok( !$ctl->start() );
-    $log->contains_only_ok( qr/server '.*' is already running/,
+    $log->contains_ok( qr/server '.*' is already running/,
         "start: already running" );
 
     ok( $ctl->stop() );
