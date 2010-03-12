@@ -4,6 +4,7 @@ Revision history for Server-Control
 
 0.13  Mar 12, 2010
 
+- When waiting for a server to start or stop, print errors from logs as they occur
 - Throw error if pod2usage will output blank usage message
 - Only require Proc::ProcessTable 0.39; later versions have trouble building on linux
 
