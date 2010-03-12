@@ -5,6 +5,7 @@ Revision history for Server-Control
 0.13  Mar 12, 2010
 
 - Throw error if pod2usage will output blank usage message
+- Only require Proc::ProcessTable 0.39; later versions have trouble building on linux
 
 0.12  Dec 15, 2009
 
