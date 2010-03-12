@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.13  Dec 15, 2009
+0.13  Mar 12, 2010
 
 - Throw error if pod2usage will output blank usage message
 
