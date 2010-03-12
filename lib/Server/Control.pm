@@ -1,4 +1,5 @@
 package Server::Control;
+use Capture::Tiny;
 use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
@@ -658,7 +659,16 @@ sub _cli_usage {
 
     $msg     ||= "";
     $verbose ||= 0;
-    pod2usage( -msg => $msg, -verbose => $verbose, -exitval => 2 );
+    my $usage = Capture::Tiny::capture_merged {
+        pod2usage( -msg => $msg, -verbose => $verbose, -exitval => "NOEXIT" );
+    };
+    if ( $usage !~ /\S/ ) {
+        die "could not get usage from pod2usage for $0";
+    }
+    else {
+        print STDERR $usage;
+        exit(2);
+    }
 }
 
 sub _ensure_is_running {
