@@ -19,7 +19,7 @@ use YAML::Any;
 use strict;
 use warnings;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 # Gives us new_with_traits - only if MooseX::Traits is installed
 #
