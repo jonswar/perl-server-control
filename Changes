@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.14  Mar 12, 2010
+0.14  Nov 18, 2010
 
 - Attempt to show error logs when validation request fails
 - Check Apache config file syntax before attempting to start or hup
