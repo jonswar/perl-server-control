@@ -201,7 +201,8 @@ sub start {
                 $self->description(), $err );
         }
         else {
-            if ( $self->_wait_for_status( ACTIVE, 'start', $error_size_start ) )
+            if (
+                $self->_wait_for_status( ACTIVE, 'start', \$error_size_start ) )
             {
                 ( my $status = $self->status_as_string() ) =~
                   s/running/now running/;
@@ -209,6 +210,9 @@ sub start {
                 if ( $self->validate_server() ) {
                     $self->successful_start();
                     return 1;
+                }
+                else {
+                    $self->_report_error_log_output($error_size_start);
                 }
             }
         }
@@ -289,11 +293,14 @@ sub hup {
     }
     $log->infof( "sent HUP to process %d", $proc->pid );
     usleep( $self->wait_for_hup_secs() * 1_000_000 );
-    if ( $self->_wait_for_status( ACTIVE, 'restart', $error_size_start ) ) {
+    if ( $self->_wait_for_status( ACTIVE, 'restart', \$error_size_start ) ) {
         $log->info( $self->status_as_string() );
         if ( $self->validate_server() ) {
             $self->successful_start();
             return 1;
+        }
+        else {
+            $self->_report_error_log_output($error_size_start);
         }
     }
     return 0;
@@ -524,14 +531,19 @@ sub _start_error_log_watch {
 sub _wait_for_status {
     my ( $self, $status, $action, $error_size_start ) = @_;
 
+    # $error_size_start can be undef, a number, or a reference to a number.
+    # In the last case we are expected to update it.
+    my $error_size_start_ref =
+      ( ref($error_size_start) ? $error_size_start : \$error_size_start );
+
     $log->infof("waiting for server $action");
     my $wait_until = time() + $self->wait_for_status_secs();
     my $poll_delay = $self->poll_for_status_secs() * 1_000_000;
     local $self->{_suppress_logs} = 1;    # Suppress logs during this loop
     while ( time() < $wait_until ) {
-        if ( defined($error_size_start) ) {
-            if ( $self->_report_error_log_output($error_size_start) ) {
-                $error_size_start = $self->_start_error_log_watch();
+        if ( defined($$error_size_start_ref) ) {
+            if ( $self->_report_error_log_output($$error_size_start_ref) ) {
+                $$error_size_start_ref = $self->_start_error_log_watch();
             }
         }
         if ( $self->status == $status ) {
