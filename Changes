@@ -4,6 +4,9 @@ Revision history for Server-Control
 
 0.14  Mar 12, 2010
 
+- Attempt to show error logs when validation request fails
+- Check Apache config file syntax before attempting to start or hup
+
 0.13  Mar 12, 2010
 
 - When waiting for a server to start or stop, print errors from logs as they occur
