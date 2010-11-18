@@ -1,8 +1,10 @@
 package Server::Control::Apache;
 use Apache::ConfigParser;
+use Capture::Tiny;
 use Cwd qw(realpath);
 use File::Spec::Functions qw(catdir catfile);
 use File::Which qw(which);
+use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Moose;
 use MooseX::StrictConstructor;
@@ -46,8 +48,6 @@ around 'new_from_cli' => sub {
 override 'valid_cli_actions' => sub {
     return ( super(), qw(graceful graceful-stop) );
 };
-
-__PACKAGE__->meta->make_immutable();
 
 sub BUILD {
     my ($self) = @_;
@@ -174,6 +174,7 @@ sub _build_error_log {
 sub do_start {
     my $self = shift;
 
+    $self->check_conf_syntax();
     $self->run_httpd_command('start');
 }
 
@@ -181,6 +182,27 @@ sub do_stop {
     my $self = shift;
 
     $self->run_httpd_command( $self->stop_cmd() );
+}
+
+override 'hup' => sub {
+    my $self = shift;
+    $self->check_conf_syntax();
+    super();
+};
+
+sub check_conf_syntax {
+    my $self         = shift;
+    my $httpd_binary = $self->httpd_binary();
+    my $conf_file    = $self->conf_file();
+    my $cmd          = "$httpd_binary -t -f $conf_file";
+
+    # To avoid printing 'syntax ok', use system() with output captured
+    # first; if error result, then use run() for error processing
+    my $result;
+    Capture::Tiny::capture_merged { $result = system($cmd) };
+    if ($result) {
+        run($cmd);
+    }
 }
 
 sub graceful_stop {
@@ -272,6 +294,8 @@ sub _rel2abs {
     }
     return $path;
 }
+
+__PACKAGE__->meta->make_immutable();
 
 1;
 
