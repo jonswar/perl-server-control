@@ -13,14 +13,14 @@ use warnings;
 
 extends 'Server::Control';
 
-has 'conf_file' => ( is => 'ro', lazy_build => 1, required => 1 );
-has 'httpd_binary' => ( is => 'ro', lazy_build => 1 );
-has 'parsed_config' => ( is => 'ro', lazy_build => 1, init_arg => undef );
+has 'conf_file'       => ( is => 'ro', lazy_build => 1, required => 1 );
+has 'httpd_binary'    => ( is => 'ro', lazy_build => 1 );
 has 'no_parse_config' => ( is => 'ro' );
+has 'parsed_config'   => ( is => 'ro', lazy_build => 1, init_arg => undef );
 has 'server_root'     => ( is => 'ro', lazy_build => 1 );
 has 'stop_cmd'        => ( is => 'rw', init_arg => undef, default => 'stop' );
+has 'validate_regex'  => ( is => 'ro', isa => 'RegexpRef' );
 has 'validate_url'    => ( is => 'ro' );
-has 'validate_regex' => ( is => 'ro', isa => 'RegexpRef' );
 
 sub _cli_option_pairs {
     my $class = shift;
@@ -403,23 +403,8 @@ Add configtest action, and test config before apache restart, like apachectl
 
 =back
 
-=head1 AUTHOR
-
-Jonathan Swartz
-
 =head1 SEE ALSO
 
 L<apachectlp|apachectlp>, L<Server::Control|Server::Control>
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright (C) 2007 Jonathan Swartz.
-
-Server::Control::Apache is provided "as is" and without any express or implied
-warranties, including, without limitation, the implied warranties of
-merchantibility and fitness for a particular purpose.
-
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
 
 =cut

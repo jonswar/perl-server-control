@@ -7,13 +7,8 @@ use warnings;
 
 extends 'Server::Control';
 
-has 'net_server_class' => (
-    is       => 'ro',
-    isa      => 'Str',
-    required => 1
-);
-has 'net_server_params' =>
-  ( is => 'ro', isa => 'HashRef', default => sub { {} } );
+has 'net_server_class'  => ( is => 'ro', isa => 'Str', required => 1 );
+has 'net_server_params' => ( is => 'ro', isa => 'HashRef', default => sub { {} } );
 
 # All of this hackery is to skip the port check on start during a HUP,
 # because Net::Server leaves the sockets open.
@@ -144,23 +139,8 @@ L</net_server_params>.
 
 =back
 
-=head1 AUTHOR
-
-Jonathan Swartz
-
 =head1 SEE ALSO
 
 L<Server::Control|Server::Control>, L<Net::Server|Net::Server>
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright (C) 2007 Jonathan Swartz.
-
-Server::Control::Apache is provided "as is" and without any express or implied
-warranties, including, without limitation, the implied warranties of
-merchantibility and fitness for a particular purpose.
-
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
 
 =cut

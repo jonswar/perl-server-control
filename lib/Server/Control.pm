@@ -19,8 +19,6 @@ use YAML::Any;
 use strict;
 use warnings;
 
-our $VERSION = '0.15';
-
 # Gives us new_with_traits - only if MooseX::Traits is installed
 #
 eval {
@@ -42,17 +40,19 @@ if ( my $moosex_traits_error = $@ ) {
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr' => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'bind_addr'   => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'description' =>
-  ( is => 'ro', isa => 'Str', lazy_build => 1, init_arg => undef );
+( is => 'ro', isa => 'Str', lazy_build => 1, init_arg => undef );
+
 has 'error_log'            => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'log_dir'              => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'name'                 => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'pid_file'             => ( is => 'ro', isa => 'Str', lazy_build => 1 );
-has 'poll_for_status_secs' => ( is => 'ro', isa => 'Num', default    => 0.2 );
+has 'poll_for_status_secs' => ( is => 'ro', isa => 'Num', default => 0.2 );
 has 'port'                 => ( is => 'ro', isa => 'Int', lazy_build => 1 );
 has 'restart_method' =>
-  ( is => 'ro', isa => enum( [qw(hup stopstart)] ), default => 'stopstart' );
+( is => 'ro', isa => enum( [qw(hup stopstart)] ), default => 'stopstart' );
+
 has 'server_root'          => ( is => 'ro', isa => 'Str' );
 has 'use_sudo'             => ( is => 'ro', isa => 'Bool', lazy_build => 1 );
 has 'wait_for_hup_secs'    => ( is => 'ro', isa => 'Num', default => 0.5 );
@@ -1214,22 +1214,7 @@ This module was developed for the Digital Media group of the Hearst
 Corporation, a diversified media company based in New York City.  Many thanks
 to Hearst management for agreeing to this open source release.
 
-=head1 AUTHOR
-
-Jonathan Swartz
-
 =head1 SEE ALSO
 
 L<serverctlp|serverctlp>, L<Server::Control::Apache|Server::Control::Apache>
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright (C) 2007 Jonathan Swartz, all rights reserved.
-
-Server::Control is provided "as is" and without any express or implied
-warranties, including, without limitation, the implied warranties of
-merchantibility and fitness for a particular purpose.
-
-This program is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself.
 
