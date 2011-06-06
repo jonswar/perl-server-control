@@ -199,6 +199,7 @@ sub start {
         if ( my $err = $@ ) {
             $log->errorf( "error while trying to start %s: %s",
                 $self->description(), $err );
+            $self->_report_error_log_output($error_size_start);
         }
         else {
             if (
@@ -260,6 +261,7 @@ sub stop {
     if ( my $err = $@ ) {
         $log->errorf( "error while trying to stop %s: %s",
             $self->description(), $err );
+        $self->_report_error_log_output($error_size_start);
     }
     elsif ( $self->_wait_for_status( INACTIVE, 'stop', $error_size_start ) ) {
         $log->infof( "%s has stopped", $self->description() );
