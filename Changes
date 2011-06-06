@@ -4,6 +4,9 @@ Revision history for Server-Control
 
 0.15  Nov 18, 2010
 
+- Attempt to show error logs when start or stop throws fatal
+- Convert to dzil
+
 0.14  Nov 18, 2010
 
 - Attempt to show error logs when validation request fails
