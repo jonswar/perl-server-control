@@ -1,21 +1,11 @@
-^cp\.yml
 ^data
 ^depends
-^dist
-^docs
 ^git
-^inc/\.author
-^lib/Test
-^localcpan
-^misc
-^perlcriticrc
-^perltidyrc
+^htdocs
+^release
 ^tmp
-^wiki
-^NOTES
-^README.DEVELOPERS
+^weaver.ini
 ^TODO
-^VERSION
 
 # pod2html files
 \.pm\.html
@@ -35,4 +25,3 @@
 ^Makefile.old$
 ^blib
 ^MANIFEST.SKIP$
-
