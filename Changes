@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.15  Nov 18, 2010
+0.15  Jun 8, 2011
 
 - Attempt to show error logs when start or stop throws fatal
 - Convert to dzil
