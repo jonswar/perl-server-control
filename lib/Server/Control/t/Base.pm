@@ -189,7 +189,7 @@ sub test_wrong_port : Tests(8) {
     # Tell ctl object to expect wrong port, to simulate a server not starting properly
     my $new_port = $port + 1;
     $ctl->{port}                 = $new_port;
-    $ctl->{wait_for_status_secs} = 1;
+    $ctl->{wait_for_status_secs} = 3;
     ok( !$ctl->start() );
     $log->contains_ok(qr/waiting for server start/);
     $log->contains_ok(
