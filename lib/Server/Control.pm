@@ -40,9 +40,10 @@ if ( my $moosex_traits_error = $@ ) {
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
-has 'bind_addr'   => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+has 'bind_addr' => ( is => 'ro', isa => 'Str', lazy_build => 1 );
+
 has 'description' =>
-( is => 'ro', isa => 'Str', lazy_build => 1, init_arg => undef );
+  ( is => 'ro', isa => 'Str', lazy_build => 1, init_arg => undef );
 
 has 'error_log'            => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'log_dir'              => ( is => 'ro', isa => 'Str', lazy_build => 1 );
@@ -50,8 +51,9 @@ has 'name'                 => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'pid_file'             => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'poll_for_status_secs' => ( is => 'ro', isa => 'Num', default => 0.2 );
 has 'port'                 => ( is => 'ro', isa => 'Int', lazy_build => 1 );
+
 has 'restart_method' =>
-( is => 'ro', isa => enum( [qw(hup stopstart)] ), default => 'stopstart' );
+  ( is => 'ro', isa => enum( [qw(hup stopstart)] ), default => 'stopstart' );
 
 has 'server_root'          => ( is => 'ro', isa => 'Str' );
 has 'use_sudo'             => ( is => 'ro', isa => 'Bool', lazy_build => 1 );

@@ -215,7 +215,8 @@ sub graceful_stop {
 sub graceful {
     my $self = shift;
 
-    my $proc = $self->_ensure_is_running() or return;
+    my $proc = $self->is_running()
+      || return $self->start();
     $self->_warn_if_different_user($proc);
 
     my $error_size_start = $self->_start_error_log_watch();
@@ -380,8 +381,8 @@ L<Server::Control|Server::Control>:
 
 =item graceful
 
-Gracefully restart the server - see
-http://httpd.apache.org/docs/2.2/stopping.html
+If server is not running, then start it. Otherwise,  gracefully restart the
+server - see http://httpd.apache.org/docs/2.2/stopping.html
 
 =item graceful-stop
 

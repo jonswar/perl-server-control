@@ -14,6 +14,7 @@ has 'net_server_params' => ( is => 'ro', isa => 'HashRef', default => sub { {} }
 # because Net::Server leaves the sockets open.
 #
 has 'in_hup' => ( is => 'ro' );
+
 before '_perform_cli_action' => sub {
     push( @ARGV, '--in-hup' ) if !( grep { $_ eq '--in-hup' } @ARGV );
 };
