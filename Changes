@@ -4,6 +4,8 @@ Revision history for Server-Control
 
 0.16  Jun 8, 2011
 
+- Apache graceful restart starts server if it wasn't started
+
 0.15  Jun 8, 2011
 
 - Attempt to show error logs when start or stop throws fatal
