@@ -4,7 +4,7 @@ Revision history for Server-Control
 
 0.16  Mar 15, 2012
 
-- Apache graceful restart starts server if it wasn't started
+- Apache graceful restart checks config file syntax, and starts server if it wasn't started
 
 0.15  Jun 8, 2011
 
