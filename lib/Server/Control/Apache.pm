@@ -17,6 +17,7 @@ has 'conf_file'       => ( is => 'ro', lazy_build => 1, required => 1 );
 has 'httpd_binary'    => ( is => 'ro', lazy_build => 1 );
 has 'no_parse_config' => ( is => 'ro' );
 has 'parsed_config'   => ( is => 'ro', lazy_build => 1, init_arg => undef );
+has 'restart_method'  => ( is => 'ro', isa => enum( [qw(graceful hup stopstart)] ), default => 'stopstart' );
 has 'server_root'     => ( is => 'ro', lazy_build => 1 );
 has 'stop_cmd'        => ( is => 'rw', init_arg => undef, default => 'stop' );
 has 'validate_regex'  => ( is => 'ro', isa => 'RegexpRef' );
@@ -383,7 +384,8 @@ L<Server::Control|Server::Control>:
 =item graceful
 
 If server is not running, then start it. Otherwise,  gracefully restart the
-server - see http://httpd.apache.org/docs/2.2/stopping.html
+server - see http://httpd.apache.org/docs/2.2/stopping.html. You can assign
+this to L<Server::Control/restart_method>.
 
 =item graceful-stop
 
