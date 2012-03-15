@@ -218,6 +218,7 @@ sub graceful {
     my $proc = $self->is_running()
       || return $self->start();
     $self->_warn_if_different_user($proc);
+    $self->check_conf_syntax();
 
     my $error_size_start = $self->_start_error_log_watch();
 
