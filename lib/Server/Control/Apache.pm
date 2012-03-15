@@ -7,6 +7,7 @@ use File::Which qw(which);
 use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Moose;
+use Moose::Util::TypeConstraints;
 use MooseX::StrictConstructor;
 use strict;
 use warnings;
