@@ -4,6 +4,8 @@ Revision history for Server-Control
 
 0.17  Mar 15, 2012
 
+- Skip tests that try to listen to port if something already listening to port
+
 0.16  Mar 15, 2012
 
 - Apache graceful restart checks config file syntax, and starts server if it wasn't started
