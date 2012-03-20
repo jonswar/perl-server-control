@@ -15,6 +15,13 @@ use Time::HiRes qw(usleep);
 use strict;
 use warnings;
 
+my $port = 15432;
+
+sub skip_if_listening {
+    my $class = shift;
+    $class->SKIP_CLASS("something listening to $port");
+}
+
 our @ctls;
 
 # Moved up from Server::Control::t::NetServer::create_ctl because it is used
@@ -47,14 +54,7 @@ sub test_startup : Tests(startup) {
 sub test_setup : Tests(setup) {
     my $self = shift;
 
-    # How to pick this w/o possibly conflicting with a port already in use?
-    # Might not want to pick from a bunch of ports...if we start
-    # accidentally leaving test servers running, it'll just compound the problem
-    #
-    $self->{port} = 15432;
-    if ( is_port_active( $self->{port}, 'localhost' ) ) {
-        die something_is_listening_msg( $self->{port}, 'localhost' );
-    }
+    $self->{port} = $port;
     $self->{temp_dir} =
       tempdir( 'Server-Control-XXXX', DIR => '/tmp', CLEANUP => 1 );
     $self->setup_test_logger('info');
