@@ -6,6 +6,8 @@ use Test::Most;
 use strict;
 use warnings;
 
+__PACKAGE__->skip_if_listening();
+
 my $test_server_class = Moose::Meta::Class->create_anon_class(
     superclasses => ['HTTP::Server::Simple'],
     methods      => {

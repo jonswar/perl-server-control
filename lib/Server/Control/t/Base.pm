@@ -19,7 +19,8 @@ my $port = 15432;
 
 sub skip_if_listening {
     my $class = shift;
-    $class->SKIP_CLASS("something listening to $port");
+    $class->SKIP_CLASS("something listening to $port")
+      if is_port_active( $port, 'localhost' );
 }
 
 our @ctls;
