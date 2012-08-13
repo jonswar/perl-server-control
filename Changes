@@ -4,6 +4,9 @@ Revision history for Server-Control
 
 0.18  Mar 22, 2012
 
+- Add Starman and Nginx subclasses
+- Move validate_url and validate_regex to main class
+
 0.17  Mar 22, 2012
 
 - Skip tests that try to listen to port if something already listening to port
