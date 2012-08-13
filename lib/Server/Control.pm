@@ -835,8 +835,9 @@ L<Server::Control::NetServer> - For L<Net::Server|Net::Server>
 
 =back
 
-These will probably be moved into their own distributions once the
-implementation stabilizes.
+There may be other subclasses
+L<http://search.cpan.org/search?query=Server%3A%3AControl&mode=all|available on
+CPAN>.
 
 =for readme stop
 
@@ -1136,12 +1137,12 @@ L</use_sudo>), logs the command, and throws runtime errors appropriately.
 =item validate_server ()
 
 This method is called after the server starts or is HUP'd. It gives the
-subclass a chance to validate the server in a particular way. For example,
-L<Server::Control::Apache|Server::Control::Apache> can visit a particular URL
-and make sure the result is as expected.
+subclass a chance to validate the server in a particular way. It should return
+a boolean indicating whether the server is in a valid state.
 
-C<validate_server> should return a boolean indicating whether the server is in
-a valid state. The default C<validate_server> always returns true.
+The default C<validate_server> uses L</validate_url> and L</validate_regex> to
+make a test web request against the server. If these are not provided then it
+simply returns true.
 
 =back
 
@@ -1227,28 +1228,6 @@ servers, say). May end up using this role.
 L<Nginx::Control|Nginx::Control>, L<Sphinx::Control|Sphinx::Control>,
 L<Lighttpd::Control|Lighttpd::Control> - Modules which use
 L<MooseX::Control|MooseX::Control>
-
-=back
-
-=head1 TO DO
-
-=over
-
-=item *
-
-Plugin to check a URL after start and make sure it comes back ok
-
-=item *
-
-Plugin to dynamically generate conf files
-
-=item *
-
-Consult global serverctlrc file as well, for common host settings
-
-=item *
-
-Add persistent shell mode, to eliminate startup cost for repeated restarts
 
 =back
 
