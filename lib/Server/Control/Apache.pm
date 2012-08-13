@@ -326,7 +326,7 @@ Server::Control::Apache -- Control Apache ala apachtctl
 
 =head1 DESCRIPTION
 
-Server::Control::Apache is a subclass of Server::Control for Apache httpd
+Server::Control::Apache is a subclass of L<Server::Control|Server::Control> for Apache httpd
 processes. It has the same basic function as apachectl, only with a richer
 feature set.
 

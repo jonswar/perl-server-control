@@ -59,7 +59,7 @@ has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int', default => 10 );
 has 'action' => ( is => 'ro', isa => 'Str' );
 
 foreach
-  my $method (qw(successful_start successful_stop failed_start failed_stop))
+  my $method (qw(successful_start successful_stop))
 {
     __PACKAGE__->meta->add_method( $method => sub { } );
 }
@@ -214,7 +214,6 @@ sub start {
             }
         }
     }
-    $self->failed_start();
     return 0;
 }
 
@@ -264,7 +263,6 @@ sub stop {
         $self->successful_stop();
         return 1;
     }
-    $self->failed_stop();
     return 0;
 }
 
@@ -1108,15 +1106,7 @@ successful_start - called when a start() succeeds
 
 =item *
 
-failed_start - called when a start() fails
-
-=item *
-
 successful_stop - called when a stop() succeeds
-
-=item *
-
-failed_stop - called when a stop() fails
 
 =back
 
