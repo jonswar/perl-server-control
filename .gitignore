@@ -4,3 +4,4 @@ data
 htdocs
 release
 tmp
+.tidyall.d
