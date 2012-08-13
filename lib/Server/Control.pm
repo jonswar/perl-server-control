@@ -51,6 +51,8 @@ has 'port'                 => ( is => 'ro', isa => 'Int', lazy_build => 1 );
 has 'restart_method'       => ( is => 'ro', isa => enum( [qw(hup stopstart)] ), default => 'stopstart' );
 has 'server_root'          => ( is => 'ro', isa => 'Str' );
 has 'use_sudo'             => ( is => 'ro', isa => 'Bool', lazy_build => 1 );
+has 'validate_regex'       => ( is => 'ro', isa => 'RegexpRef' );
+has 'validate_url'         => ( is => 'ro' );
 has 'wait_for_hup_secs'    => ( is => 'ro', isa => 'Num', default => 0.5 );
 has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int', default => 10 );
 
@@ -58,9 +60,7 @@ has 'wait_for_status_secs' => ( is => 'ro', isa => 'Int', default => 10 );
 #
 has 'action' => ( is => 'ro', isa => 'Str' );
 
-foreach
-  my $method (qw(successful_start successful_stop))
-{
+foreach my $method (qw(successful_start successful_stop)) {
     __PACKAGE__->meta->add_method( $method => sub { } );
 }
 
@@ -429,9 +429,35 @@ sub is_listening {
 sub validate_server {
     my ($self) = @_;
 
-    # Validate running server, in a server-specific way. By default just assume valid.
-    #
-    return 1;
+    if ( defined( my $url = $self->validate_url ) ) {
+        require LWP;
+        $url = sprintf( "http://%s%s%s",
+            $self->bind_addr,
+            ( $self->port == 80 ? '' : ( ":" . $self->port ) ), $url )
+          if substr( $url, 0, 1 ) eq '/';
+        $log->infof( "validating url '%s'", $url );
+        my $ua  = LWP::UserAgent->new;
+        my $res = $ua->get($url);
+        if ( $res->is_success ) {
+            if ( my $regex = $self->validate_regex ) {
+                if ( $res->content !~ $regex ) {
+                    $log->errorf(
+                        "content of '%s' (%d bytes) did not match regex '%s'",
+                        $url, length( $res->content ), $regex );
+                    return 0;
+                }
+            }
+            $log->debugf("validation successful") if $log->is_debug;
+            return 1;
+        }
+        else {
+            $log->errorf( "error getting '%s': %s", $url, $res->status_line );
+            return 0;
+        }
+    }
+    else {
+        return 1;
+    }
 }
 
 sub run_system_command {
@@ -512,6 +538,16 @@ sub new_from_cli {
     my $class = shift;
 
     return $class->new(@_);
+}
+
+sub build_binary {
+    my ( $self, $name ) = @_;
+
+    my $binary_name = $name . "_binary";
+    my $binary      = ( File::Which::which($name) )[0]
+      or die "no $binary_name specified and cannot find in path";
+    $log->debugf("setting $binary_name to '$binary'") if $log->is_debug;
+    return $binary;
 }
 
 #
@@ -778,15 +814,24 @@ The following subclasses are currently available as part of this distribution:
 
 =item *
 
-L<Server::Control::Apache> - Apache httpd
+L<Server::Control::Apache> - For L<Apache httpd|http://httpd.apache.org/>
 
 =item *
 
-L<Server::Control::HTTPServerSimple> - HTTP::Server::Simple server
+L<Server::Control::Nginx> - For L<Nginx|http://nginx.org/>
 
 =item *
 
-L<Server::Control::NetServer> - Net::Server server
+L<Server::Control::Starman> - For L<Starman|Starman>
+
+=item *
+
+L<Server::Control::HTTPServerSimple> - For
+L<HTTP::Server::Simple|HTTP::Server::Simple>
+
+=item *
+
+L<Server::Control::NetServer> - For L<Net::Server|Net::Server>
 
 =back
 
@@ -870,6 +915,17 @@ in an rc file.
 
 Whether to use 'sudo' when attempting to start and stop server. Defaults to
 true if I<port> < 1024, false otherwise.
+
+=item validate_url
+
+A URL to visit after the server has been started or HUP'd, in order to validate
+the state of the server. The URL just needs to return an OK result to be
+considered valid, unless L</validate_regex> is also specified.
+
+=item validate_regex
+
+A regex to match against the content returned by L</validate_url>. The content
+must match the regex for the server to be considered valid.
 
 =item wait_for_status_secs
 

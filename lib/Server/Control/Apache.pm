@@ -21,8 +21,6 @@ has 'parsed_config'   => ( is => 'ro', lazy_build => 1, init_arg => undef );
 has 'restart_method'  => ( is => 'ro', isa => enum( [qw(graceful hup stopstart)] ), default => 'stopstart' );
 has 'server_root'     => ( is => 'ro', lazy_build => 1 );
 has 'stop_cmd'        => ( is => 'rw', init_arg => undef, default => 'stop' );
-has 'validate_regex'  => ( is => 'ro', isa => 'RegexpRef' );
-has 'validate_url'    => ( is => 'ro' );
 
 sub _cli_option_pairs {
     my $class = shift;
@@ -89,11 +87,8 @@ sub _validate_conf_file {
 }
 
 sub _build_httpd_binary {
-    my $self  = shift;
-    my $httpd = ( which('httpd') )[0]
-      or die "no httpd_binary specified and cannot find in path";
-    $log->debugf("setting httpd_binary to '$httpd'") if $log->is_debug;
-    return $httpd;
+    my $self = shift;
+    return $self->build_binary('httpd');
 }
 
 sub _build_parsed_config {
@@ -256,40 +251,6 @@ sub run_httpd_command {
     $self->run_system_command($cmd);
 }
 
-sub validate_server {
-    my ($self) = @_;
-
-    if ( defined( my $url = $self->validate_url ) ) {
-        require LWP;
-        $url = sprintf( "http://%s%s%s",
-            $self->bind_addr,
-            ( $self->port == 80 ? '' : ( ":" . $self->port ) ), $url )
-          if substr( $url, 0, 1 ) eq '/';
-        $log->infof( "validating url '%s'", $url );
-        my $ua  = LWP::UserAgent->new;
-        my $res = $ua->get($url);
-        if ( $res->is_success ) {
-            if ( my $regex = $self->validate_regex ) {
-                if ( $res->content !~ $regex ) {
-                    $log->errorf(
-                        "content of '%s' (%d bytes) did not match regex '%s'",
-                        $url, length( $res->content ), $regex );
-                    return 0;
-                }
-            }
-            $log->debugf("validation successful") if $log->is_debug;
-            return 1;
-        }
-        else {
-            $log->errorf( "error getting '%s': %s", $url, $res->status_line );
-            return 0;
-        }
-    }
-    else {
-        return 1;
-    }
-}
-
 sub _rel2abs {
     my ( $self, $path ) = @_;
 
@@ -326,9 +287,11 @@ Server::Control::Apache -- Control Apache ala apachtctl
 
 =head1 DESCRIPTION
 
-Server::Control::Apache is a subclass of L<Server::Control|Server::Control> for Apache httpd
-processes. It has the same basic function as apachectl, only with a richer
-feature set.
+Server::Control::Apache is a subclass of L<Server::Control|Server::Control> for
+L<Apache httpd|http://httpd.apache.org/> processes. It has the same basic
+function as
+L<apachectl|http://httpd.apache.org/docs/2.2/programs/apachectl.html>, only
+with a richer feature set.
 
 This module has an associated binary, L<apachectlp|apachectlp>, which you may
 want to use instead.
@@ -355,17 +318,6 @@ uses the first one found.
 
 Don't attempt to parse the httpd.conf; only look at values passed in the usual
 ways.
-
-=item validate_url
-
-A URL to visit after the server has been started or HUP'd, in order to validate
-the state of the server. The URL just needs to return an OK result to be
-considered valid, unless L</validate_regex> is also specified.
-
-=item validate_regex
-
-A regex to match against the content returned by L</validate_url>. The content
-must match the regex for the server to be considered valid.
 
 =back
 
