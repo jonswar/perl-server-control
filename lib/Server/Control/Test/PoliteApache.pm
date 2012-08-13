@@ -7,4 +7,6 @@ around 'status_as_string' => sub {
     return $self->$orig(@_) . ", sir";
 };
 
+__PACKAGE__->meta->make_immutable();
+
 1;
