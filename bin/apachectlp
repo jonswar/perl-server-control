@@ -1,5 +1,6 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 use strict;
+use warnings;
 use Server::Control::Apache;
 
 Server::Control::Apache->handle_cli();
