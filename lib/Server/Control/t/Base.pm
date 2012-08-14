@@ -128,6 +128,9 @@ sub test_stopstart : Tests(16) {
 }
 
 sub test_refork : Tests(7) {
+
+    return 'release testing only' unless $ENV{RELEASE_TESTING};
+
     my $self = shift;
     my $ctl  = $self->{ctl};
 
