@@ -7,6 +7,7 @@ Revision history for Server-Control
 - Add Starman and Nginx subclasses
 - Move validate_url and validate_regex to main class
 - Add binary_path to main class (replacing httpd_binary in Apache subclass)
+- Add 'use warnings' to scripts - RT #78958 (WSHELDAHL)
 
 0.17  Mar 22, 2012
 
