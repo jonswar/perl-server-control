@@ -2,7 +2,7 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.18  Aug 13, 2012
+0.18  Aug 14, 2012
 
 - Add Starman and Nginx subclasses
 - Move validate_url and validate_regex to main class
