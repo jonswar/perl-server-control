@@ -3,6 +3,7 @@ use Capture::Tiny;
 use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
+use File::Which;
 use Getopt::Long;
 use Hash::MoreUtils qw(slice_def);
 use IPC::System::Simple qw();
@@ -40,6 +41,8 @@ if ( my $moosex_traits_error = $@ ) {
 # Note: In some cases we use lazy_build rather than specifying required or a
 # default, to make life easier for subclasses.
 #
+has 'binary_name'          => ( is => 'ro', isa => 'Str' );
+has 'binary_path'          => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'bind_addr'            => ( is => 'ro', isa => 'Str', lazy_build => 1 );
 has 'description'          => ( is => 'ro', isa => 'Str', lazy_build => 1, init_arg => undef );
 has 'error_log'            => ( is => 'ro', isa => 'Str', lazy_build => 1 );
@@ -134,6 +137,17 @@ sub _log_constructor_params {
 
 sub _build_bind_addr {
     return "localhost";
+}
+
+sub _build_binary_path {
+    my $self = shift;
+    if ( my $binary_name = $self->binary_name ) {
+        my $binary_path = ( File::Which::which($binary_name) )[0]
+          or die
+          "no binary_path specified and cannot find '$binary_name' in path";
+        return $binary_path;
+    }
+    return undef;
 }
 
 sub _build_error_log {
@@ -378,38 +392,24 @@ sub is_running {
     my ($self) = @_;
 
     my $pid_file = $self->pid_file();
-    my $pid_contents = eval { read_file($pid_file) };
-    if ($@) {
-        $log->debugf( "pid file '%s' does not exist", $pid_file )
+    my $pid      = $self->_read_pid_file($pid_file);
+    return undef unless $pid;
+
+    if ( my $proc = $self->_find_process($pid) ) {
+        $log->debugf( "pid file '%s' exists and has valid pid %d",
+            $pid_file, $pid )
           if $log->is_debug && !$self->{_suppress_logs};
-        return undef;
+        return $proc;
     }
     else {
-        my ($pid) = ( $pid_contents =~ /^\s*(\d+)\s*$/ );
-        unless ( defined($pid) ) {
-            $log->infof( "pid file '%s' does not contain a valid process id!",
-                $pid_file );
+        if ( -f $pid_file ) {
+            $log->infof(
+                "pid file '%s' contains a non-existing process id '%d'!",
+                $pid_file, $pid );
             $self->_handle_corrupt_pid_file();
-            return undef;
-        }
-
-        my $ptable = process_table();
-        if ( my ($proc) = grep { $_->pid == $pid } @{ $ptable->table } ) {
-            $log->debugf( "pid file '%s' exists and has valid pid %d",
-                $pid_file, $pid )
-              if $log->is_debug && !$self->{_suppress_logs};
-            return $proc;
-        }
-        else {
-            if ( -f $pid_file ) {
-                $log->infof(
-                    "pid file '%s' contains a non-existing process id '%d'!",
-                    $pid_file, $pid );
-                $self->_handle_corrupt_pid_file();
-                return undef;
-            }
         }
     }
+    return undef;
 }
 
 sub is_listening {
@@ -540,16 +540,6 @@ sub new_from_cli {
     return $class->new(@_);
 }
 
-sub build_binary {
-    my ( $self, $name ) = @_;
-
-    my $binary_name = $name . "_binary";
-    my $binary      = ( File::Which::which($name) )[0]
-      or die "no $binary_name specified and cannot find in path";
-    $log->debugf("setting $binary_name to '$binary'") if $log->is_debug;
-    return $binary;
-}
-
 #
 # PRIVATE METHODS
 #
@@ -652,6 +642,7 @@ sub _cli_get_options {
 sub _cli_option_pairs {
     return (
         'bind-addr=s'            => 'bind_addr',
+        'b|binary=s'             => 'binary_path',
         'd|server-root=s'        => 'server_root',
         'error-log=s'            => 'error_log',
         'h|help'                 => 'help',
@@ -746,6 +737,35 @@ sub _warn_if_different_user {
             $uid,
             scalar( getpwuid($uid) )
         );
+    }
+}
+
+sub _find_process {
+    my ( $self, $pid ) = @_;
+
+    my $ptable = process_table();
+    my ($proc) = grep { $_->pid == $pid } @{ $ptable->table };
+    return $proc;
+}
+
+sub _read_pid_file {
+    my ( $self, $pid_file ) = @_;
+
+    my $pid_contents = eval { read_file($pid_file) };
+    if ($@) {
+        $log->debugf( "pid file '%s' does not exist", $pid_file )
+          if $log->is_debug && !$self->{_suppress_logs};
+        return undef;
+    }
+    else {
+        my ($pid) = ( $pid_contents =~ /^\s*(\d+)\s*$/ );
+        unless ( defined($pid) ) {
+            $log->infof( "pid file '%s' does not contain a valid process id!",
+                $pid_file );
+            $self->_handle_corrupt_pid_file();
+            return undef;
+        }
+        return $pid;
     }
 }
 
@@ -852,6 +872,13 @@ L<Server::Control::Apache|Server::Control::Apache> can deduce many of these
 from the Apache conf file.
 
 =over
+
+=item binary_path
+
+The absolute path to the server binary, e.g. /usr/sbin/httpd or
+/usr/local/bin/nginx. By default, searches for the appropriate command in the
+user's PATH and uses the first one found, or throws an error if one cannot be
+found.
 
 =item bind_addr
 

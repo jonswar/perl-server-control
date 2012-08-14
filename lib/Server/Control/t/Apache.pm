@@ -11,14 +11,6 @@ use Test::Most;
 use strict;
 use warnings;
 
-sub check_httpd_binary : Test(startup) {
-    my $self = shift;
-
-    if ( !scalar( which('httpd') ) ) {
-        $self->SKIP_ALL("cannot find httpd in path");
-    }
-}
-
 sub create_ctl {
     my ( $self, $port, $temp_dir, %extra_params ) = @_;
 
@@ -168,11 +160,15 @@ sub test_validate_url : Tests(7) {
     my $create_ctl =
       sub { $ctl = $self->create_ctl( $self->{port}, $self->{temp_dir}, @_ ) };
 
-    $create_ctl->( validate_url => $url );
+    $create_ctl->( validate_url => $url, apache_binary => '/usr/sbin/httpd' );
     ok( $ctl->start() );
     $ctl->stop();
 
-    $create_ctl->( validate_url => $url, validate_regex => qr/Hello world/ );
+    $create_ctl->(
+        validate_url   => $url,
+        validate_regex => qr/Hello world/,
+        binary_path    => '/usr/sbin/httpd'
+    );
     ok( $ctl->start() );
     $ctl->stop();
     $log->clear();
@@ -204,13 +200,13 @@ sub test_cli_parse_argv : Tests(1) {
     is_deeply(
         \%cli_params,
         {
-            conf_file    => 1,
-            httpd_binary => 2,
-            server_root  => 3,
-            action       => 4,
-            name         => 5,
-            port         => 6,
-            verbose      => 1
+            conf_file   => 1,
+            binary_path => 2,
+            server_root => 3,
+            action      => 4,
+            name        => 5,
+            port        => 6,
+            verbose     => 1
         }
     );
 }

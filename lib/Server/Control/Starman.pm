@@ -8,23 +8,15 @@ use warnings;
 
 extends 'Server::Control';
 
+has '+binary_name'   => ( is => 'ro', isa => 'Str', default => 'starman' );
 has 'app_psgi'       => ( is => 'ro', required => 1 );
 has 'options'        => ( is => 'ro', required => 1, isa => 'HashRef' );
 has 'options_string' => ( is => 'ro', init_arg => undef, lazy_build => 1 );
-has 'starman_binary' => ( is => 'ro', lazy_build => 1 );
 
 sub BUILD {
     my ( $self, $params ) = @_;
 
     $self->{params} = $params;
-}
-
-sub _cli_option_pairs {
-    my $class = shift;
-    return (
-        $class->SUPER::_cli_option_pairs,
-        'b|starman-binary=s' => 'starman_binary',
-    );
 }
 
 sub _build_options_string {
@@ -62,63 +54,32 @@ sub _build_port {
     return $self->options->{port} || die "cannot determine port";
 }
 
-sub _build_starman_binary {
-    my $self = shift;
-    return $self->build_binary('starman');
-}
-
 sub do_start {
     my $self = shift;
 
     $self->run_system_command(
         sprintf( '%s %s %s',
-            $self->starman_binary, $self->options_string, $self->app_psgi )
+            $self->binary_path, $self->options_string, $self->app_psgi )
     );
 }
 
 # HACK - starman does not show up in Proc::ProcessTable on Linux for some reason!
 # Fall back to using /proc directly.
 #
-sub is_running {
-    my ($self) = @_;
+sub _find_process {
+    my ( $self, $pid ) = @_;
 
-    unless ( $^O eq 'linux' ) {
-        return $self->SUPER::is_running(@_);
-    }
-    my $pid_file = $self->pid_file();
-    my $pid_contents = eval { read_file($pid_file) };
-    if ($@) {
-        $log->debugf( "pid file '%s' does not exist", $pid_file )
-          if $log->is_debug && !$self->{_suppress_logs};
-        return undef;
-    }
-    else {
-        my ($pid) = ( $pid_contents =~ /^\s*(\d+)\s*$/ );
-        unless ( defined($pid) ) {
-            $log->infof( "pid file '%s' does not contain a valid process id!",
-                $pid_file );
-            $self->_handle_corrupt_pid_file();
-            return undef;
-        }
-
+    if ( $^O eq 'linux' ) {
         my $procdir = "/proc/$pid";
         if ( -d $procdir ) {
             my $proc = bless( { pid => $pid, uid => ( stat($procdir) )[4] },
                 'Proc::ProcessTable::Process' );
-            $log->debugf( "pid file '%s' exists and has valid pid %d",
-                $pid_file, $pid )
-              if $log->is_debug && !$self->{_suppress_logs};
             return $proc;
         }
-        else {
-            if ( -f $pid_file ) {
-                $log->infof(
-                    "pid file '%s' contains a non-existing process id '%d'!",
-                    $pid_file, $pid );
-                $self->_handle_corrupt_pid_file();
-                return undef;
-            }
-        }
+        return undef;
+    }
+    else {
+        return $self->SUPER::_find_process($pid);
     }
 }
 
@@ -137,12 +98,12 @@ Server::Control::Starman -- Control Starman
     use Server::Control::Starman;
 
     my $starman = Server::Control::Starman->new(
+        binary_path => '/usr/local/bin/starman'
         options => {
             port      => 123,
             error_log => '/path/to/error.log',
             pid_file  => '/path/to/starman.pid'
         },
-        starman_binary => '/usr/local/bin/starman'
     );
     if ( !$starman->is_running() ) {
         $starman->start();
@@ -175,21 +136,10 @@ C<--daemonize> and C<--preload-app> are automatically passed to starman; the
 only current way to change this is by subclassing and overriding
 _build_options_string.
 
-=item starman_binary
-
-Path to starman binary. By default, searches for starman in the user's PATH and
-uses the first one found.
-
 =back
 
 This module will determine L<Server::Control/error_log>,
 L<Server::Control/pid_file>, and L<Server::Control/port> from the options hash.
-
-=head1 KNOWN BUGS
-
-Will only work under Linux. starman does not show up in
-L<Proc::ProcessTable|Proc::ProcessTable> results for some reason. So we have to
-check /proc directly for now.
 
 =head1 SEE ALSO
 

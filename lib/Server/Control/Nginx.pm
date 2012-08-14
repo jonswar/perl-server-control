@@ -6,34 +6,21 @@ use warnings;
 
 extends 'Server::Control';
 
+has '+binary_name' => ( is => 'ro', isa => 'Str', default => 'nginx' );
 has 'conf_file'    => ( is => 'ro', required => 1 );
-has 'nginx_binary' => ( is => 'ro', lazy_build => 1 );
-
-sub _cli_option_pairs {
-    my $class = shift;
-    return (
-        $class->SUPER::_cli_option_pairs,
-        'b|nginx-binary=s' => 'nginx_binary',
-    );
-}
-
-sub _build_nginx_binary {
-    my $self = shift;
-    return $self->build_binary('nginx');
-}
 
 sub do_start {
     my $self = shift;
 
     $self->run_system_command(
-        sprintf( '%s -c %s', $self->nginx_binary, $self->conf_file ) );
+        sprintf( '%s -c %s', $self->binary_path, $self->conf_file ) );
 }
 
 sub do_stop {
     my $self = shift;
 
     $self->run_system_command(
-        sprintf( '%s -c %s -s stop', $self->nginx_binary, $self->conf_file ) );
+        sprintf( '%s -c %s -s stop', $self->binary_path, $self->conf_file ) );
 }
 
 __PACKAGE__->meta->make_immutable();
@@ -53,7 +40,7 @@ Server::Control::Nginx -- Control Nginx
     use Server::Control::Nginx;
 
     my $nginx = Server::Control::Nginx->new(
-        nginx_binary => '/usr/sbin/nginx',
+        binary_path => '/usr/sbin/nginx',
         conf_file => '/path/to/nginx.conf'
     );
     if ( !$nginx->is_running() ) {
@@ -75,11 +62,6 @@ L<Server::Control|Server::Control>:
 =item conf_file
 
 Path to conf file - required.
-
-=item nginx_binary
-
-Path to nginx binary. By default, searches for nginx in the user's PATH and
-uses the first one found.
 
 =back
 
