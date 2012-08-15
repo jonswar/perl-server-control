@@ -57,12 +57,14 @@ sub BUILD {
 # Alias old httpd_binary to binary_path
 #
 around BUILDARGS => sub {
-    my ( $orig, $class, %params ) = @_;
+    my $orig   = shift;
+    my $class  = shift;
+    my $params = $class->$orig(@_);
 
-    if ( my $binary_path = delete( $params{httpd_binary} ) ) {
-        $params{binary_path} = $binary_path;
+    if ( my $binary_path = delete( $params->{httpd_binary} ) ) {
+        $params->{binary_path} = $binary_path;
     }
-    return $class->$orig(%params);
+    return $params;
 };
 *httpd_binary = *binary_path;
 
