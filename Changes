@@ -2,6 +2,8 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
+0.20  Aug 15, 2012
+
 0.19  Aug 15, 2012
 
 - Fix httpd_binary for backward compatibility
