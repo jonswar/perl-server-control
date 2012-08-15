@@ -160,7 +160,7 @@ sub test_validate_url : Tests(7) {
     my $create_ctl =
       sub { $ctl = $self->create_ctl( $self->{port}, $self->{temp_dir}, @_ ) };
 
-    $create_ctl->( validate_url => $url, apache_binary => '/usr/sbin/httpd' );
+    $create_ctl->( validate_url => $url, httpd_binary => '/usr/sbin/httpd' );
     ok( $ctl->start() );
     $ctl->stop();
 

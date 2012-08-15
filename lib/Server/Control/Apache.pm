@@ -54,17 +54,17 @@ sub BUILD {
     $self->_validate_conf_file();
 }
 
-# Alias old apache_binary to binary_path
+# Alias old httpd_binary to binary_path
 #
 around BUILDARGS => sub {
     my ( $orig, $class, %params ) = @_;
 
-    if ( my $binary_path = delete( $params{apache_binary} ) ) {
+    if ( my $binary_path = delete( $params{httpd_binary} ) ) {
         $params{binary_path} = $binary_path;
     }
     return $class->$orig(%params);
 };
-*apache_binary = *binary_path;
+*httpd_binary = *binary_path;
 
 sub _validate_conf_file {
     my ($self) = @_;
@@ -309,7 +309,7 @@ L<Server::Control|Server::Control>:
 
 =over
 
-=item apache_binary
+=item httpd_binary
 
 An alias for L<Server::Control/binary_path>, left in for backward
 compatibility.
