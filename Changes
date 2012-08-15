@@ -4,6 +4,8 @@ Revision history for Server-Control
 
 0.19  Aug 14, 2012
 
+- Fix httpd_binary for backward compatibility
+
 0.18  Aug 14, 2012
 
 - Add Starman and Nginx subclasses
