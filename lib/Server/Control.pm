@@ -924,7 +924,8 @@ defaults to L</stopstart>.
 =item server_root
 
 Root directory of server, for conf files, log files, etc. This will affect
-defaults of other parameters like I<log_dir>.
+defaults of other parameters like I<log_dir>. You must create this directory,
+it will not be created for you.
 
 =item serverctlrc
 

@@ -39,20 +39,20 @@ sub _underscore_to_dash {
     return $str;
 }
 
-sub _build_error_log {
+override _build_error_log => sub {
     my $self = shift;
-    return $self->options->{error_log};
-}
+    return $self->options->{error_log} || super();
+};
 
-sub _build_pid_file {
+override _build_pid_file => sub {
     my $self = shift;
-    return $self->options->{pid};
-}
+    return $self->options->{pid} || super();
+};
 
-sub _build_port {
+override _build_port => sub {
     my $self = shift;
-    return $self->options->{port} || die "cannot determine port";
-}
+    return $self->options->{port} || super();
+};
 
 sub do_start {
     my $self = shift;
@@ -102,7 +102,7 @@ Server::Control::Starman -- Control Starman
         options => {
             port      => 123,
             error_log => '/path/to/error.log',
-            pid_file  => '/path/to/starman.pid'
+            pid       => '/path/to/starman.pid'
         },
     );
     if ( !$starman->is_running() ) {
