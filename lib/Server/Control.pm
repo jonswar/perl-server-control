@@ -855,9 +855,8 @@ L<Server::Control::NetServer> - For L<Net::Server|Net::Server>
 
 =back
 
-There may be other subclasses
-L<http://search.cpan.org/search?query=Server%3A%3AControl&mode=all|available on
-CPAN>.
+There may be other subclasses L<available on
+CPAN|http://search.cpan.org/search?query=Server%3A%3AControl&mode=all>.
 
 =for readme stop
 
