@@ -134,12 +134,28 @@ passing to starman.
 
 C<--daemonize> and C<--preload-app> are automatically passed to starman; the
 only current way to change this is by subclassing and overriding
-_build_options_string.
+C<_build_options_string>.
+
+In addition, the C<error_log>, C<pid>, and C<port> options, if given, will be
+used to populate the corresponding Server::Control parameters
+(L<error_log|Server::Control/error_log>, L<pid_file|Server::Control/pid_file>,
+and L<port|Server::Control/port>).
+
+e.g. this
+
+    options => {
+        port      => 123,
+        error_log => '/path/to/error.log',
+        max_requests => 100,
+        pid       => '/path/to/starman.pid'
+    }
+
+will result in command line options
+
+    --port 123 --error-log /path/to/error.log --max-requests 100
+    --pid /path/to/starman.pid --daemonize --preload-app
 
 =back
-
-This module will determine L<Server::Control/error_log>,
-L<Server::Control/pid_file>, and L<Server::Control/port> from the options hash.
 
 =head1 SEE ALSO
 
