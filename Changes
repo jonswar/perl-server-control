@@ -6,6 +6,7 @@ Revision history for Server-Control
 
 - Fix error_log default for Starman - RT #79008 (RSAVAGE)
 - Mention that server_root must be created - RT #79009 (RSAVAGE)
+- Fix nonsensical dist.ini abstract
 
 0.19  Aug 15, 2012
 
