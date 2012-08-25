@@ -2,7 +2,9 @@ Revision history for Server-Control
 
 ** denotes an incompatible change
 
-0.21  Aug 20, 2012
+0.21  Aug 25, 2012
+
+- Various doc improvements - RT #79009 (RSAVAGE)
 
 0.20  Aug 20, 2012
 
