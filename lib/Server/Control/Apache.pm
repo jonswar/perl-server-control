@@ -3,7 +3,6 @@ use Apache::ConfigParser;
 use Capture::Tiny;
 use Cwd qw(realpath);
 use File::Spec::Functions qw(catdir catfile);
-use File::Which qw(which);
 use IPC::System::Simple qw(run);
 use Log::Any qw($log);
 use Moose;

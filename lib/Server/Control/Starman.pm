@@ -1,6 +1,5 @@
 package Server::Control::Starman;
 use File::Slurp qw(read_file);
-use File::Which qw(which);
 use Log::Any qw($log);
 use Moose;
 use strict;
