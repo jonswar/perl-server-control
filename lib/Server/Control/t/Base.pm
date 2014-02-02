@@ -1,4 +1,5 @@
 package Server::Control::t::Base;
+
 use base qw(Test::Class);
 use File::Slurp;
 use File::Temp qw(tempfile tempdir);

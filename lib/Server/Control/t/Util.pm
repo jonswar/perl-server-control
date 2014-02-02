@@ -1,4 +1,5 @@
 package Server::Control::t::Util;
+
 use base qw(Test::Class);
 use File::Temp qw(tempdir);
 use Guard;

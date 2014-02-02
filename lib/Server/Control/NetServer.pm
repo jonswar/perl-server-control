@@ -1,5 +1,7 @@
 package Server::Control::NetServer;
+
 use Carp;
+use Class::Load;
 use Moose;
 use MooseX::StrictConstructor;
 use strict;
@@ -62,7 +64,7 @@ sub do_start {
     my $child = fork;
     croak "Can't fork: $!" unless defined($child);
     if ( !$child ) {
-        Class::MOP::load_class( $self->net_server_class );
+        Class::Load::load_class( $self->net_server_class );
         $self->net_server_class->run(
             background => 1,
             %{ $self->net_server_params }

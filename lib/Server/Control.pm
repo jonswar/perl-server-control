@@ -1,5 +1,7 @@
 package Server::Control;
+
 use Capture::Tiny;
+use Class::Load;
 use File::Basename;
 use File::Slurp qw(read_file);
 use File::Spec::Functions qw(catdir);
@@ -492,7 +494,7 @@ sub handle_cli {
             substr( $subclass, 0, 1 ) eq '+'
           ? substr( $subclass, 1 )
           : "Server::Control::$subclass";
-        Class::MOP::load_class($full_subclass);
+        Class::Load::load_class($full_subclass);
         return $full_subclass->handle_cli();
     }
 

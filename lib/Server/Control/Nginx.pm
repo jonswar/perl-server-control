@@ -1,4 +1,5 @@
 package Server::Control::Nginx;
+
 use Log::Any qw($log);
 use Moose;
 use strict;

@@ -1,4 +1,5 @@
 package Server::Control::Test::PoliteApache;
+
 use Moose;
 extends 'Server::Control::Apache';
 around 'status_as_string' => sub {

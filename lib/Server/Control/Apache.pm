@@ -1,4 +1,5 @@
 package Server::Control::Apache;
+
 use Apache::ConfigParser;
 use Capture::Tiny;
 use Cwd qw(realpath);

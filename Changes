@@ -5,6 +5,7 @@ Revision history for Server-Control
 0.21  Feb 1, 2014
 
 - Remove unneeded dependency on File::Which
+- Replace deprecated Class::MOP methods with Class::Load
 
 0.20  Aug 20, 2012
 

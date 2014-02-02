@@ -1,4 +1,5 @@
 package Server::Control::t::NetServer;
+
 use base qw(Server::Control::t::Base);
 use Server::Control::NetServer;
 use POSIX qw(geteuid getegid);
